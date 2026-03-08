@@ -1,0 +1,39 @@
+{
+  "name": "discover",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "check": "bun run format:check && bun run lint && bun run typecheck",
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "format:check": "biome check .",
+    "format:write": "biome format . --write",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint . --fix",
+    "fix": "bun run format:write && bun run lint:fix",
+    "typecheck": "astro check",
+    "db:migrate": "bun run drizzle-kit migrate",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@astrojs/svelte": "^7.2.5",
+    "@tailwindcss/vite": "^4.2.1",
+    "@tanstack/svelte-form": "^1.28.4",
+    "@tanstack/svelte-query": "^6.1.0",
+    "astro": "^5.17.1",
+    "drizzle-orm": "^0.45.1",
+    "drizzle-zod": "^0.8.3",
+    "nanostores": "^1.1.1",
+    "svelte": "^5.53.7",
+    "tailwindcss": "^4.2.1",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.6",
+    "@astrojs/ts-plugin": "1.10.6",
+    "@biomejs/biome": "2.4.6",
+    "drizzle-kit": "^0.31.9"
+  }
+}
