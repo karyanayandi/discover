@@ -22,3 +22,15 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# ai
+.opencode/
+openspec/
+opencode.jsonc
+.github/prompts/
+.github/skills/
+
+# others
+tmp/
+docs/
+tests/
