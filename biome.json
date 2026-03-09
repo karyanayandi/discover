@@ -25,7 +25,8 @@
       "**/*.svelte",
       "**/*.js",
       "**/*.mjs",
-      "**/*.jsx"
+      "**/*.jsx",
+      "**/*.json"
     ]
   },
   "linter": {
@@ -39,6 +40,7 @@
       "**/*.js",
       "**/*.mjs",
       "**/*.jsx",
+      "**/*.json",
       "!src/env.d.ts"
     ],
     "rules": {
@@ -185,6 +187,12 @@
     }
   },
   "overrides": [
+    {
+      "includes": ["**/*.svelte"],
+      "assist": {
+        "actions": { "source": { "organizeImports": "off" } }
+      }
+    },
     {
       "includes": ["**/*.svelte", "**/*.astro", "**/*.vue"],
       "linter": {

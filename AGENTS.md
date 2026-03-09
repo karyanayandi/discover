@@ -19,7 +19,7 @@
 
 ## Overview
 
-Astro 5 SSR app (Node adapter) + Redis cache +
+Astro 5 SSR app (Node adapter) + shadcn-svelte ui, Redis cache +
 Postgres (Drizzle ORM). Package manager is **bun**.
 
 ## Commands
@@ -48,7 +48,7 @@ Postgres (Drizzle ORM). Package manager is **bun**.
 src/
   assets/             # Static assets
   components/         # UI components (.astro + .svelte)
-    ui/               # shadcn/ui components
+    ui/               # shadcn-svelte/ui components
   layouts/            # Astro layout components
   lib/                # Server-side utilities and business logic
     db/               # Drizzle ORM schemas and queries
@@ -112,6 +112,10 @@ src/
 
 ## Architecture Notes
 
+- **Components**: Astro for page-level and layout components, Svelte for
+  interactive UI components. No mixing — Astro files for non interactive components, Svelte
+  files are not for pages/layouts.
+- **UI**: please use shadcn-svelte/ui components where possible, and create new ones in @/components/ui so they can be reused across the app. For non-UI components, put them in @/components. reference: https://www.shadcn-svelte.com/llms.txt
 - **Caching**: Redis (`src/lib/redis.ts`) for GraphQL responses and view
   buffering
 
