@@ -1,0 +1,40 @@
+---
+import UserMenu from "@/components/user-menu.svelte"
+
+const pathname = Astro.url.pathname
+---
+
+<header
+  class="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+>
+  <div class="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4">
+    <a href="/" class="text-lg font-semibold tracking-tight">Discover</a>
+    <nav class="flex items-center gap-4 text-sm">
+      <a
+        href="/"
+        class:list={[
+          "transition-colors hover:text-foreground",
+          pathname === "/"
+            ? "text-foreground"
+            : "text-muted-foreground",
+        ]}
+      >
+        Feed
+      </a>
+      <a
+        href="/library"
+        class:list={[
+          "transition-colors hover:text-foreground",
+          pathname === "/library"
+            ? "text-foreground"
+            : "text-muted-foreground",
+        ]}
+      >
+        Library
+      </a>
+    </nav>
+    <div class="ml-auto">
+      <UserMenu client:load />
+    </div>
+  </div>
+</header>

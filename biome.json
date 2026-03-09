@@ -192,7 +192,7 @@
   },
   "overrides": [
     {
-      "includes": ["**/*.svelte"],
+      "includes": ["**/*.svelte", "**/*.astro"],
       "assist": {
         "actions": { "source": { "organizeImports": "off" } }
       }

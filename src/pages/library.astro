@@ -14,7 +14,7 @@ const savedRows = await db.query.savedArticlesTable.findMany({
   orderBy: [desc(savedArticlesTable.savedAt)],
 })
 
-const articleIds = savedRows.map((r) => r.articleId)
+const articleIds = savedRows.map((r: { articleId: string }) => r.articleId)
 
 const articles =
   articleIds.length > 0
@@ -34,10 +34,12 @@ const articles =
     : []
 
 const orderedArticles = articleIds
-  .map((id) => articles.find((a) => a.id === id))
+  .map((id: string) =>
+    articles.find((a: (typeof articles)[number]) => a.id === id),
+  )
   .filter(Boolean) as typeof articles
 
-const savedSlugs = orderedArticles.map((a) => a.slug)
+const savedSlugs = orderedArticles.map((a: (typeof articles)[number]) => a.slug)
 ---
 
 <Layout title="My Library - Discover">
@@ -59,7 +61,7 @@ const savedSlugs = orderedArticles.map((a) => a.slug)
     <main>
       {orderedArticles.length > 0 ? (
         <div class="space-y-4">
-          {orderedArticles.map((article) => (
+          {orderedArticles.map((article: (typeof orderedArticles)[number]) => (
             <ArticleCard article={article} />
           ))}
         </div>

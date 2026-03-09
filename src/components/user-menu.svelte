@@ -1,0 +1,79 @@
+<script lang="ts">
+import { authClient } from "@/lib/auth/client"
+import { userStore } from "@/stores/user"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
+let user = $state(userStore.get())
+
+$effect(() => {
+  return userStore.subscribe((u) => {
+    user = u
+  })
+})
+
+async function handleSignIn() {
+  await authClient.signIn.social({ provider: "google" })
+}
+
+async function handleSignOut() {
+  await authClient.signOut()
+  window.location.href = "/"
+}
+</script>
+
+{#if user}
+  <DropdownMenu>
+    <DropdownMenuTrigger>
+      {#if user.image}
+        <img
+          src={user.image}
+          alt={user.name ?? "User"}
+          class="size-8 rounded-full"
+          referrerpolicy="no-referrer"
+        />
+      {:else}
+        <div
+          class="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground"
+        >
+          {(user.name ?? user.email).charAt(0).toUpperCase()}
+        </div>
+      {/if}
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="end" class="w-56">
+      <DropdownMenuLabel>
+        <div class="flex flex-col gap-0.5">
+          <span class="text-sm font-medium">{user.name ?? "User"}</span>
+          <span class="text-xs text-muted-foreground">{user.email}</span>
+        </div>
+      </DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem>
+        <a href="/library" class="w-full">My Library</a>
+      </DropdownMenuItem>
+      {#if user.role === "admin"}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem>
+          <a href="/api/internal/pipeline/run" class="w-full">
+            Run Pipeline
+          </a>
+        </DropdownMenuItem>
+      {/if}
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onclick={handleSignOut}>
+        Sign out
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  </DropdownMenu>
+{:else}
+  <Button variant="outline" size="sm" onclick={handleSignIn}>
+    Sign in
+  </Button>
+{/if}

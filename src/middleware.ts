@@ -28,11 +28,11 @@ const authGuardMiddleware = defineMiddleware((context, next) => {
         headers: { "Content-Type": "application/json" },
       })
     }
-    return context.redirect("/")
+    return context.redirect("/login")
   }
 
   if (pathname.startsWith("/library") && !user) {
-    return context.redirect("/")
+    return context.redirect("/login")
   }
 
   return next()

@@ -18,6 +18,7 @@ import {
   categoriesTable,
   citationsTable,
 } from "@/lib/db/schemas"
+import type { SelectArticleSection } from "@/lib/db/schemas/article-sections"
 import { logger } from "@/lib/logger"
 
 const { slug } = Astro.params
@@ -120,7 +121,7 @@ const articleUrl = `${Astro.url.origin}/article/${slug}`
     <article>
       <header class="mb-6">
         <div class="mb-3 flex flex-wrap gap-2">
-          {categoryLinks.map((cat) => (
+          {categoryLinks.map((cat: { slug: string; name: string }) => (
             <Badge variant="secondary">{cat.name}</Badge>
           ))}
         </div>
@@ -172,7 +173,7 @@ const articleUrl = `${Astro.url.origin}/article/${slug}`
       <Separator />
 
       <div class="prose prose-neutral dark:prose-invert mt-8 max-w-none">
-        {sections.map((section) => (
+        {sections.map((section: SelectArticleSection) => (
           <section>
             <h2>{section.heading}</h2>
             <Fragment set:html={section.body} />
