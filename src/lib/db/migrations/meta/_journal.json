@@ -22,6 +22,13 @@
       "when": 1773085945991,
       "tag": "0002_slimy_bloodstrike",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1773087784637,
+      "tag": "0003_wandering_zaladane",
+      "breakpoints": true
     }
   ]
 }

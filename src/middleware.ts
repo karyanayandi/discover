@@ -1,18 +1,41 @@
-import { defineMiddleware } from "astro:middleware"
+import { defineMiddleware, sequence } from "astro:middleware"
 import { auth } from "@/lib/auth"
 
-export const onRequest = defineMiddleware(async (context, next) => {
-  const isAuthed = await auth.api.getSession({
+const sessionMiddleware = defineMiddleware(async (context, next) => {
+  const session = await auth.api.getSession({
     headers: context.request.headers,
   })
 
-  if (isAuthed) {
-    context.locals.user = isAuthed.user
-    context.locals.session = isAuthed.session
-  } else {
-    context.locals.user = null
-    context.locals.session = null
+  context.locals.user = session?.user ?? null
+  context.locals.session = session?.session ?? null
+
+  return next()
+})
+
+const authGuardMiddleware = defineMiddleware((context, next) => {
+  const { pathname } = context.url
+  const user = context.locals.user
+
+  const isAdminRoute =
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/api/admin") ||
+    pathname.startsWith("/api/internal")
+
+  if (isAdminRoute && user?.role !== "admin") {
+    if (pathname.startsWith("/api/")) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+    return context.redirect("/")
+  }
+
+  if (pathname.startsWith("/library") && !user) {
+    return context.redirect("/")
   }
 
   return next()
 })
+
+export const onRequest = sequence(sessionMiddleware, authGuardMiddleware)

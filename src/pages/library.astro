@@ -1,0 +1,84 @@
+---
+import { desc, eq, inArray } from "drizzle-orm"
+import ArticleCard from "@/components/article-card.svelte"
+import StoreInit from "@/components/store-init.svelte"
+import Layout from "@/layouts/layout.astro"
+import { db } from "@/lib/db/client"
+import { articlesTable, savedArticlesTable } from "@/lib/db/schemas"
+
+const user = Astro.locals.user
+if (!user) return Astro.redirect("/")
+
+const savedRows = await db.query.savedArticlesTable.findMany({
+  where: eq(savedArticlesTable.userId, user.id),
+  orderBy: [desc(savedArticlesTable.savedAt)],
+})
+
+const articleIds = savedRows.map((r) => r.articleId)
+
+const articles =
+  articleIds.length > 0
+    ? await db.query.articlesTable.findMany({
+        where: inArray(articlesTable.id, articleIds),
+        columns: {
+          id: true,
+          slug: true,
+          title: true,
+          summary: true,
+          thumbnailUrl: true,
+          sourceCount: true,
+          readingTimeMinutes: true,
+          publishedAt: true,
+        },
+      })
+    : []
+
+const orderedArticles = articleIds
+  .map((id) => articles.find((a) => a.id === id))
+  .filter(Boolean) as typeof articles
+
+const savedSlugs = orderedArticles.map((a) => a.slug)
+---
+
+<Layout title="My Library - Discover">
+  <StoreInit
+    user={{ id: user.id, name: user.name, email: user.email, image: user.image ?? null, role: user.role ?? null }}
+    {savedSlugs}
+    client:load
+  />
+  <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold tracking-tight text-foreground">
+        My Library
+      </h1>
+      <p class="mt-2 text-muted-foreground">
+        Your saved articles and insights
+      </p>
+    </header>
+
+    <main>
+      {orderedArticles.length > 0 ? (
+        <div class="space-y-4">
+          {orderedArticles.map((article) => (
+            <ArticleCard article={article} />
+          ))}
+        </div>
+      ) : (
+        <div class="py-16 text-center">
+          <p class="text-lg font-medium text-muted-foreground">
+            No saved articles yet
+          </p>
+          <p class="mt-2 text-sm text-muted-foreground">
+            Save articles from the feed to build your reading list.
+          </p>
+          <a
+            href="/"
+            class="mt-4 inline-block rounded-lg bg-primary px-6 py-2 text-sm font-medium text-primary-foreground"
+          >
+            Browse articles
+          </a>
+        </div>
+      )}
+    </main>
+  </div>
+</Layout>

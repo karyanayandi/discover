@@ -203,7 +203,7 @@
         "rules": {
           "style": {
             "useConst": "off",
-            "useImportType": "on",
+            "useImportType": "off",
             "noRestrictedImports": {
               "level": "error",
               "options": {

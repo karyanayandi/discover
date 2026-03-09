@@ -1,8 +1,105 @@
 ---
-import Welcome from "@/components/welcome.astro"
+import { and, asc, count, desc, eq, sql } from "drizzle-orm"
+import ArticleFeed from "@/components/article-feed.svelte"
+import CategorySidebar from "@/components/category-sidebar.svelte"
+import StoreInit from "@/components/store-init.svelte"
 import Layout from "@/layouts/layout.astro"
+import { db } from "@/lib/db/client"
+import { getSavedSlugsForUser } from "@/lib/db/queries"
+import {
+  articleCategoriesTable,
+  articlesTable,
+  categoriesTable,
+} from "@/lib/db/schemas"
+
+const categorySlug = Astro.url.searchParams.get("category") ?? ""
+const limit = 20
+
+const user = Astro.locals.user
+const savedSlugs = user ? await getSavedSlugsForUser(user.id) : []
+
+const categories = await db.query.categoriesTable.findMany({
+  orderBy: [asc(categoriesTable.name)],
+})
+
+const conditions = [eq(articlesTable.status, "published")]
+
+if (categorySlug) {
+  const cat = categories.find((c) => c.slug === categorySlug)
+  if (cat) {
+    const articleIds = await db
+      .select({ articleId: articleCategoriesTable.articleId })
+      .from(articleCategoriesTable)
+      .where(eq(articleCategoriesTable.categoryId, cat.id))
+    const ids = articleIds.map((r) => r.articleId)
+    if (ids.length > 0) {
+      conditions.push(
+        sql`${articlesTable.id} IN (${sql.join(
+          ids.map((id) => sql`${id}`),
+          sql`, `,
+        )})`,
+      )
+    }
+  }
+}
+
+const where = and(...conditions)
+
+const [articles, [totalRow]] = await Promise.all([
+  db.query.articlesTable.findMany({
+    where,
+    orderBy: [desc(articlesTable.publishedAt)],
+    limit,
+    columns: {
+      id: true,
+      slug: true,
+      title: true,
+      summary: true,
+      thumbnailUrl: true,
+      sourceCount: true,
+      readingTimeMinutes: true,
+      publishedAt: true,
+    },
+  }),
+  db.select({ count: count() }).from(articlesTable).where(where),
+])
+
+const total = totalRow?.count ?? 0
 ---
 
-<Layout>
-	<Welcome />
+<Layout title="Discover - AI-Curated Insights">
+  <StoreInit
+    user={user ? { id: user.id, name: user.name, email: user.email, image: user.image ?? null, role: user.role ?? null } : null}
+    {savedSlugs}
+    selectedCategory={categorySlug}
+    client:load
+  />
+  <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold tracking-tight text-foreground">
+        Discover
+      </h1>
+      <p class="mt-2 text-muted-foreground">
+        AI-curated insights from across the web
+      </p>
+    </header>
+
+    <div class="flex gap-8">
+      <aside class="hidden w-56 shrink-0 lg:block">
+        <CategorySidebar
+          {categories}
+          client:load
+        />
+      </aside>
+
+      <main class="min-w-0 flex-1">
+        <ArticleFeed
+          initialArticles={articles}
+          initialTotal={total}
+          pageSize={limit}
+          client:load
+        />
+      </main>
+    </div>
+  </div>
 </Layout>
