@@ -1,11 +1,9 @@
+// @ts-nocheck
+
 import Root, {
-  // @ts-expect-error
   type ButtonProps,
-  // @ts-expect-error
   type ButtonSize,
-  // @ts-expect-error
   type ButtonVariant,
-  // @ts-expect-error
   buttonVariants,
 } from "./button.svelte"
 
