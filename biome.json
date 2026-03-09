@@ -26,7 +26,8 @@
       "**/*.js",
       "**/*.mjs",
       "**/*.jsx",
-      "**/*.json"
+      "**/*.json",
+      "!src/lib/db/migrations/"
     ]
   },
   "linter": {
@@ -41,7 +42,8 @@
       "**/*.mjs",
       "**/*.jsx",
       "**/*.json",
-      "!src/env.d.ts"
+      "!src/env.d.ts",
+      "!src/lib/db/migrations/"
     ],
     "rules": {
       "recommended": true,
