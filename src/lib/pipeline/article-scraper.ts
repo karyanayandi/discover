@@ -3,6 +3,8 @@ import type { Result } from "better-result"
 import { Result as R } from "better-result"
 import { JSDOM } from "jsdom"
 
+import { db } from "@/lib/db/client"
+import { assetsTable } from "@/lib/db/schemas"
 import { logger } from "@/lib/logger"
 import { getR2Storage } from "@/lib/storage"
 import { ArticleScrapeError } from "./errors"
@@ -71,15 +73,44 @@ async function uploadThumbnail(
     return { url: imageUrl, assetId: null }
   }
 
+  const buffer = bufferResult.value
   const r2 = getR2Storage()
-  const uploadResult = await r2.uploadImage(bufferResult.value, contentType)
+  const uploadResult = await r2.uploadImage(buffer, contentType)
 
   if (R.isError(uploadResult)) {
     logger.warn(`R2 upload failed, using original URL: ${imageUrl}`)
     return { url: imageUrl, assetId: null }
   }
 
-  return { url: uploadResult.value, assetId: null }
+  const r2Url = uploadResult.value
+  const filename = r2Url.split("/").pop() ?? "thumbnail.webp"
+
+  const assetResult = await R.tryPromise({
+    try: () =>
+      db
+        .insert(assetsTable)
+        .values({
+          filename,
+          originalName:
+            new URL(imageUrl).pathname.split("/").pop() ?? "thumbnail",
+          type: "images",
+          size: buffer.byteLength,
+          url: r2Url,
+        })
+        .returning({ id: assetsTable.id }),
+    catch: (e) =>
+      new ArticleScrapeError({
+        message: `Failed to insert asset row for thumbnail`,
+        cause: e,
+      }),
+  })
+
+  if (R.isError(assetResult)) {
+    logger.warn("Asset row insert failed, returning URL without assetId")
+    return { url: r2Url, assetId: null }
+  }
+
+  return { url: r2Url, assetId: assetResult.value[0].id }
 }
 
 export function scrapeArticle(

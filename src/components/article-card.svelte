@@ -13,8 +13,13 @@ export interface ArticleCardData {
 
 <script lang="ts">
   import Badge from "@/components/ui/badge/badge.svelte"
-  import { isSaved, savedSlugsStore } from "@/stores/saved-articles"
+  import {
+    savedSlugsStore,
+    toggleSave,
+  } from "@/stores/saved-articles"
   import { userStore } from "@/stores/user"
+  import type { ClientUser } from "@/stores/user"
+  import { toast } from "svelte-sonner"
 
   let {
     article,
@@ -24,20 +29,37 @@ export interface ArticleCardData {
     href?: string
   } = $props()
 
-  let user = $state(userStore.get())
-  let articleSaved = $state(isSaved(article.slug))
+  let user: ClientUser | null = $state(userStore.get())
+  let articleSaved = $state(savedSlugsStore.get().has(article.slug))
+  let saving = $state(false)
 
   $effect(() => {
-    return userStore.subscribe((u) => {
+    return userStore.subscribe((u: ClientUser | null) => {
       user = u
     })
   })
 
   $effect(() => {
-    return savedSlugsStore.subscribe((set) => {
+    return savedSlugsStore.subscribe((set: Set<string>) => {
       articleSaved = set.has(article.slug)
     })
   })
+
+  async function handleSaveClick(e: MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (saving) return
+    saving = true
+    const result = await toggleSave(article.slug)
+    if (result.error) {
+      toast.error(result.error)
+    } else {
+      toast.success(
+        result.saved ? "Saved to library" : "Removed from library",
+      )
+    }
+    saving = false
+  }
 
   const timeAgo = $derived(() => {
     if (!article.publishedAt) return ""
@@ -57,24 +79,31 @@ export interface ArticleCardData {
   class="group relative block rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-accent/50"
   href={link}
 >
-  {#if user && articleSaved}
-    <div
-      class="absolute right-3 top-3 text-primary"
-      title="Saved to library"
+  {#if user}
+    <button
+      type="button"
+      class="absolute right-3 top-3 rounded-md p-1 transition-colors hover:bg-accent {articleSaved
+        ? 'text-primary'
+        : 'text-muted-foreground/0 group-hover:text-muted-foreground'}"
+      title={articleSaved ? "Remove from library" : "Save to library"}
+      disabled={saving}
+      onclick={handleSaveClick}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
-        fill="currentColor"
+        fill={articleSaved ? "currentColor" : "none"}
+        stroke="currentColor"
+        stroke-width="2"
         class="h-4 w-4"
       >
         <path
-          fill-rule="evenodd"
-          d="M6.32 2.577a49.255 49.255 0 0 1 11.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 0 1-1.085.67L12 18.089l-7.165 3.583A.75.75 0 0 1 3.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93Z"
-          clip-rule="evenodd"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0z"
         />
       </svg>
-    </div>
+    </button>
   {/if}
   <div class="flex gap-4">
     {#if article.thumbnailUrl}

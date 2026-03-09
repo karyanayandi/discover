@@ -68,9 +68,15 @@ function ensureCategory(slug: string): Promise<Result<string, PipelineError>> {
   })
 }
 
+interface ThumbnailInfo {
+  url: string
+  assetId: string | null
+}
+
 function storeArticle(
   summary: SummarizedArticle,
   citations: ExtractedCitation[],
+  thumbnail?: ThumbnailInfo,
 ): Promise<Result<void, PipelineError>> {
   return R.gen(async function* () {
     const [article] = yield* R.await(
@@ -87,6 +93,8 @@ function storeArticle(
               sourceCount: citations.length,
               readingTimeMinutes: summary.readingTimeMinutes,
               publishedAt: new Date(),
+              thumbnailUrl: thumbnail?.url ?? null,
+              thumbnailAssetId: thumbnail?.assetId ?? null,
             })
             .returning({ id: articlesTable.id }),
         catch: (e) =>
@@ -212,10 +220,17 @@ export function runPipeline(): Promise<Result<PipelineResult, PipelineError>> {
     }
 
     logger.info("Pipeline: Scraping articles for context...")
+    const thumbnailsByLink = new Map<string, ThumbnailInfo>()
     for (const item of pendingItems) {
       if (!item.link) continue
       const scraped = await scrapeArticle(item.link)
-      if (R.isOk(scraped) && scraped.value.thumbnailUrl) {
+      if (R.isOk(scraped)) {
+        if (scraped.value.thumbnailUrl) {
+          thumbnailsByLink.set(item.link, {
+            url: scraped.value.thumbnailUrl,
+            assetId: scraped.value.thumbnailAssetId,
+          })
+        }
         await R.tryPromise({
           try: () =>
             db
@@ -249,7 +264,18 @@ export function runPipeline(): Promise<Result<PipelineResult, PipelineError>> {
       const citationResult = extractCitationsFromCluster(cluster.items)
       const citations = R.isOk(citationResult) ? citationResult.value : []
 
-      const storeResult = await storeArticle(summaryResult.value, citations)
+      const thumbnail = cluster.items
+        .filter(
+          (item): item is typeof item & { link: string } => item.link !== null,
+        )
+        .map((item) => thumbnailsByLink.get(item.link))
+        .find((t): t is ThumbnailInfo => t !== undefined)
+
+      const storeResult = await storeArticle(
+        summaryResult.value,
+        citations,
+        thumbnail,
+      )
 
       if (storeResult.isErr()) {
         result.errors.push(
