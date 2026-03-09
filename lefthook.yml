@@ -1,0 +1,17 @@
+pre-commit:
+  commands:
+    lint:
+      run: bun run lint
+    typecheck:
+      run: bun run typecheck
+    format:
+      run: bun run format:check
+
+pre-push:
+  commands:
+    lint:
+      run: bun run lint
+    typecheck:
+      run: bun run typecheck
+    format:
+      run: bun run format:check
