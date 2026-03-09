@@ -5,3 +5,5 @@ export const redisKeyPrefix =
   process.env.REDIS_KEY_PREFIX ??
   import.meta.env.REDIS_KEY_PREFIX ??
   "app_cache:"
+export const openaiApiKey =
+  process.env.OPENAI_API_KEY ?? import.meta.env.OPENAI_API_KEY
