@@ -1,0 +1,45 @@
+---
+import { cn } from "@/lib/utils/style"
+
+interface Props {
+  class?: string
+  variant?: "assist" | "filter" | "input" | "suggestion"
+  selected?: boolean
+  href?: string
+}
+
+const {
+  class: className,
+  variant = "assist",
+  selected = false,
+  href,
+  ...props
+} = Astro.props
+
+const baseStyles =
+  "inline-flex items-center justify-center h-8 px-4 rounded-lg text-sm font-medium transition-all duration-200 gap-2 border"
+
+const variants = {
+  assist:
+    "bg-background border-border hover:bg-accent hover:text-accent-foreground text-foreground",
+  filter: selected
+    ? "bg-secondary border-transparent text-secondary-foreground hover:bg-secondary/80"
+    : "bg-background border-border hover:bg-accent hover:text-accent-foreground text-muted-foreground",
+  input:
+    "bg-background border-border hover:bg-accent hover:text-accent-foreground text-foreground",
+  suggestion:
+    "bg-card border-transparent hover:bg-accent hover:text-accent-foreground text-muted-foreground",
+}
+
+const Element = href ? "a" : "div"
+---
+
+<Element
+  href={href}
+  class={cn(baseStyles, variants[variant], className)}
+  {...props}
+>
+  <slot name="leading" />
+  <slot />
+  <slot name="trailing" />
+</Element>

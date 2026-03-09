@@ -1,0 +1,50 @@
+---
+import { cn } from "@/lib/utils/style"
+
+interface Props {
+  class?: string
+  variant?: "default" | "outline"
+  padding?: "none" | "sm" | "default" | "lg"
+  href?: string
+}
+
+const {
+  class: className,
+  variant = "default",
+  padding = "default",
+  href,
+  ...props
+} = Astro.props
+
+const baseStyles =
+  "block rounded-xl overflow-hidden transition-all duration-200"
+
+const variants = {
+  default: "bg-card text-card-foreground shadow-sm hover:shadow-md",
+  outline:
+    "bg-card text-card-foreground border border-border shadow-sm hover:shadow-md",
+}
+
+const paddings = {
+  none: "",
+  sm: "p-3",
+  default: "p-4",
+  lg: "p-6",
+}
+
+const Element = href ? "a" : "div"
+---
+
+<Element
+  href={href}
+  class={cn(
+    baseStyles,
+    variants[variant],
+    paddings[padding],
+    href && "hover:bg-accent/5 cursor-pointer block",
+    className,
+  )}
+  {...props}
+>
+  <slot />
+</Element>
