@@ -15,6 +15,13 @@
       "when": 1773084748359,
       "tag": "0001_giant_violations",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773085945991,
+      "tag": "0002_slimy_bloodstrike",
+      "breakpoints": true
     }
   ]
 }

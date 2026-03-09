@@ -117,9 +117,17 @@ src/
 - Use Svelte 5 runes: `$props()`, `$state()`, `$derived()`, `$effect()`
 - Component props pattern: `let { prop1, prop2 }: Props = $props()`
 - Use `$bindable()` for two-way binding
-- Use `{@render children()}` for slots instead of `<slot />`
-- Module-level exports use `<script lang="ts" module>` block
-- Style components with tailwind-variants when complex variants needed
+- Use `{@render children?.()}` for slots instead of `<slot />`
+- Module-level exports (types, variants) use `<script lang="ts" module>` block
+- Style components with `tailwind-variants` (`tv`) for complex variants:
+  ```ts
+  export const buttonVariants = tv({
+    base: "base-classes",
+    variants: { variant: { default: "...", outline: "..." } },
+    defaultVariants: { variant: "default" },
+  })
+  ```
+- Export variant types: `export type ButtonVariant = VariantProps<typeof buttonVariants>["variant"]`
 
 ## Architecture Notes
 
@@ -142,7 +150,12 @@ src/
 
 ## Environment Variables
 
-- Access via `@/lib/env` which provides typed exports: `databaseUrl`, `redisUrl`, `redisKeyPrefix`
+- Access via `@/lib/env` which provides typed exports:
+  - `databaseUrl`, `redisUrl`, `redisKeyPrefix`
+  - `openaiApiKey`, `publicSiteUrl`
+  - `authSecret`, `authUrl`, `publicGoogleClientId`, `googleClientSecret`
+  - `cfAccountId`, `r2AccessKey`, `r2Bucket`, `r2Domain`, `r2SecretKey`
+- Pattern: `process.env.VAR ?? import.meta.env.VAR ?? "default"`
 - Never access `process.env` or `import.meta.env` directly in application code
 - Add new env vars to `src/lib/env.ts` with appropriate typing
 
