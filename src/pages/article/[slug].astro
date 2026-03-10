@@ -109,70 +109,84 @@ const articleUrl = `${Astro.url.origin}/article/${slug}`
     client:load
   />
   <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-    <nav class="mb-6">
+    <div class="mb-6 flex items-center justify-between">
       <a
         href="/"
-        class="text-sm text-muted-foreground hover:text-foreground"
+        class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
-        &larr; Back to feed
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        Back to Feed
       </a>
-    </nav>
+      <div class="flex items-center gap-2">
+        <ShareButton title={article.title} url={articleUrl} client:load />
+        <SaveButton slug={slug} client:load />
+      </div>
+    </div>
 
     <article>
-      <header class="mb-6">
-        <div class="mb-3 flex flex-wrap gap-2">
+      <header class="mb-8">
+        <div class="mb-4 flex flex-wrap gap-2">
           {categoryLinks.map((cat: { slug: string; name: string }) => (
             <Badge variant="secondary">{cat.name}</Badge>
           ))}
         </div>
 
-        <h1 class="text-3xl font-bold tracking-tight text-foreground">
+        <h1 class="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl">
           {article.title}
         </h1>
 
-        <p class="mt-3 text-lg text-muted-foreground">
-          {article.summary}
-        </p>
-
-        <div class="mt-4 flex items-center gap-4">
-          <span class="text-sm text-muted-foreground">
-            {article.sourceCount} sources
-          </span>
-          <span class="text-sm text-muted-foreground">
-            {article.readingTimeMinutes} min read
-          </span>
+        <div class="mt-6 flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
+          <div class="flex items-center gap-2">
+            <div class="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+            </div>
+            <span>AI Discover</span>
+          </div>
           {article.publishedAt && (
-            <time
-              datetime={article.publishedAt.toISOString()}
-              class="text-sm text-muted-foreground"
-            >
-              {article.publishedAt.toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </time>
+            <div class="flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+              <time datetime={article.publishedAt.toISOString()}>
+                {article.publishedAt.toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </time>
+            </div>
           )}
-        </div>
-
-        <div class="mt-4 flex gap-2">
-          <SaveButton slug={slug} client:load />
-          <ShareButton title={article.title} url={articleUrl} client:load />
+          <div class="flex items-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>{article.readingTimeMinutes} min read</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+            <span>{article.sourceCount} sources</span>
+          </div>
         </div>
       </header>
+
+      <div class="mb-8 rounded-xl border border-border bg-muted/50 p-6">
+        <div class="mb-3 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Executive Summary
+          </h2>
+        </div>
+        <p class="leading-relaxed text-foreground/90">
+          {article.summary}
+        </p>
+      </div>
 
       {article.thumbnailUrl && (
         <img
           src={article.thumbnailUrl}
           alt=""
-          class="mb-8 w-full rounded-xl object-cover"
+          class="mb-8 aspect-video w-full rounded-xl object-cover"
           loading="eager"
         />
       )}
 
-      <Separator />
-
-      <div class="prose prose-neutral dark:prose-invert mt-8 max-w-none">
+      <div class="prose prose-neutral dark:prose-invert max-w-none">
         {sections.map((section: SelectArticleSection) => (
           <section>
             <h2>{section.heading}</h2>
@@ -186,15 +200,18 @@ const articleUrl = `${Astro.url.origin}/article/${slug}`
       </div>
     </article>
 
-    <Separator class="my-8" />
-
-    <div class="grid gap-8 lg:grid-cols-3">
-      <div class="lg:col-span-2">
+    {citations.length > 0 && (
+      <>
+        <Separator class="my-10" />
         <CitationList {citations} client:load />
-      </div>
-      <div>
+      </>
+    )}
+
+    {relatedArticles.length > 0 && (
+      <>
+        <Separator class="my-10" />
         <RelatedInsights articles={relatedArticles} client:load />
-      </div>
-    </div>
+      </>
+    )}
   </div>
 </Layout>

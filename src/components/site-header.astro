@@ -34,7 +34,7 @@ const pathname = Astro.url.pathname
       </a>
     </nav>
     <div class="ml-auto">
-      <UserMenu client:load />
+      <UserMenu client:only="svelte" />
     </div>
   </div>
 </header>

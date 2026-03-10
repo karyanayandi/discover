@@ -1,10 +1,11 @@
 import { adminClient } from "better-auth/client/plugins"
 import { createAuthClient } from "better-auth/svelte"
-import { publicSiteUrl } from "@/lib/env"
 import { ac, roles } from "./permission"
 
 const baseURL =
-  typeof window !== "undefined" ? window.location.origin : publicSiteUrl
+  typeof window !== "undefined"
+    ? window.location.origin
+    : (import.meta.env.PUBLIC_SITE_URL ?? "")
 
 export const authClient = createAuthClient({
   baseURL,

@@ -1,0 +1,64 @@
+---
+import AdminTable from "@/components/admin/admin-table.svelte"
+import FeedForm from "@/components/admin/feed-form.svelte"
+import AdminLayout from "@/layouts/admin-layout.astro"
+import { db } from "@/lib/db/client"
+import { feedSourcesTable } from "@/lib/db/schemas"
+import { desc } from "drizzle-orm"
+
+const feeds = await db
+  .select()
+  .from(feedSourcesTable)
+  .orderBy(desc(feedSourcesTable.createdAt))
+---
+
+<AdminLayout title="Feed Sources — Admin">
+  <div class="space-y-8">
+    <div>
+      <h2 class="text-2xl font-bold tracking-tight">Feed Sources</h2>
+      <p class="text-muted-foreground">
+        Manage RSS/Atom feeds that power article discovery.
+      </p>
+    </div>
+
+    <div class="grid gap-8 lg:grid-cols-3">
+      <div class="lg:col-span-2">
+        <AdminTable
+          columns={[
+            { key: "name", label: "Name", sortable: true },
+            { key: "url", label: "URL" },
+            {
+              key: "enabled",
+              label: "Status",
+              render: (row) =>
+                row.enabled ? "Active" : "Disabled",
+            },
+          ]}
+          rows={feeds}
+          actions={[
+            {
+              label: "Delete",
+              variant: "destructive",
+              onClick: async (row) => {
+                if (!confirm("Delete this feed source?")) return
+                const res = await fetch(`/api/admin/feeds/${row.id}`, {
+                  method: "DELETE",
+                })
+                if (res.ok) window.location.reload()
+              },
+            },
+          ]}
+          emptyMessage="No feed sources configured yet."
+          client:load
+        />
+      </div>
+
+      <div>
+        <FeedForm
+          onSuccess={() => window.location.reload()}
+          client:load
+        />
+      </div>
+    </div>
+  </div>
+</AdminLayout>

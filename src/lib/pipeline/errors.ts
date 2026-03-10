@@ -26,3 +26,8 @@ export class PipelineError extends TaggedError("PipelineError")<{
   message: string
   cause?: unknown
 }>() {}
+
+export class SchedulerError extends TaggedError("SchedulerError")<{
+  message: string
+  cause?: unknown
+}>() {}

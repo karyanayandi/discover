@@ -1,0 +1,76 @@
+---
+import AdminTable from "@/components/admin/admin-table.svelte"
+import CategoryForm from "@/components/admin/category-form.svelte"
+import AdminLayout from "@/layouts/admin-layout.astro"
+import { db } from "@/lib/db/client"
+import { articleCategoriesTable, categoriesTable } from "@/lib/db/schemas"
+import { asc, count, eq } from "drizzle-orm"
+
+const categoriesRaw = await db
+  .select({
+    id: categoriesTable.id,
+    name: categoriesTable.name,
+    slug: categoriesTable.slug,
+    description: categoriesTable.description,
+    articleCount: count(articleCategoriesTable.articleId),
+  })
+  .from(categoriesTable)
+  .leftJoin(
+    articleCategoriesTable,
+    eq(categoriesTable.id, articleCategoriesTable.categoryId),
+  )
+  .groupBy(categoriesTable.id)
+  .orderBy(asc(categoriesTable.name))
+
+const categories = categoriesRaw.map((c) => ({
+  ...c,
+  articleCount: Number(c.articleCount),
+}))
+---
+
+<AdminLayout title="Categories — Admin">
+  <div class="space-y-8">
+    <div>
+      <h2 class="text-2xl font-bold tracking-tight">Categories</h2>
+      <p class="text-muted-foreground">
+        Organize articles into categories for easier discovery.
+      </p>
+    </div>
+
+    <div class="grid gap-8 lg:grid-cols-3">
+      <div class="lg:col-span-2">
+        <AdminTable
+          columns={[
+            { key: "name", label: "Name", sortable: true },
+            { key: "slug", label: "Slug" },
+            { key: "articleCount", label: "Articles", sortable: true },
+          ]}
+          rows={categories}
+          actions={[
+            {
+              label: "Delete",
+              variant: "destructive",
+              onClick: async (row) => {
+                if (!confirm(`Delete category "${row.name}"?`)) return
+                const res = await fetch(
+                  `/api/admin/categories/${row.id}`,
+                  { method: "DELETE" },
+                )
+                if (res.ok) window.location.reload()
+              },
+            },
+          ]}
+          emptyMessage="No categories created yet."
+          client:load
+        />
+      </div>
+
+      <div>
+        <CategoryForm
+          onSuccess={() => window.location.reload()}
+          client:load
+        />
+      </div>
+    </div>
+  </div>
+</AdminLayout>

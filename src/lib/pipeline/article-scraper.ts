@@ -42,15 +42,30 @@ function extractThumbnail(doc: Document, url: string): string | null {
 async function uploadThumbnail(
   imageUrl: string,
 ): Promise<{ url: string; assetId: string | null }> {
+  logger.info({ imageUrl }, "Thumbnail upload: fetching image")
+
   const fetchResult = await R.tryPromise({
     try: () => fetch(imageUrl),
-    catch: () =>
+    catch: (e) =>
       new ArticleScrapeError({
         message: `Failed to fetch thumbnail ${imageUrl}`,
+        cause: e,
       }),
   })
 
-  if (R.isError(fetchResult) || !fetchResult.value.ok) {
+  if (R.isError(fetchResult)) {
+    logger.warn(
+      { imageUrl, error: fetchResult.error.message },
+      "Thumbnail upload: fetch failed",
+    )
+    return { url: imageUrl, assetId: null }
+  }
+
+  if (!fetchResult.value.ok) {
+    logger.warn(
+      { imageUrl, status: fetchResult.value.status },
+      "Thumbnail upload: fetch returned non-OK status",
+    )
     return { url: imageUrl, assetId: null }
   }
 
@@ -58,27 +73,44 @@ async function uploadThumbnail(
   const contentType = response.headers.get("content-type") ?? ""
 
   if (!contentType.startsWith("image/")) {
+    logger.warn(
+      { imageUrl, contentType },
+      "Thumbnail upload: skipped — not an image content-type",
+    )
     return { url: imageUrl, assetId: null }
   }
 
   const bufferResult = await R.tryPromise({
     try: async () => Buffer.from(await response.arrayBuffer()),
-    catch: () =>
+    catch: (e) =>
       new ArticleScrapeError({
         message: "Failed to read thumbnail buffer",
+        cause: e,
       }),
   })
 
   if (R.isError(bufferResult)) {
+    logger.warn(
+      { imageUrl, error: bufferResult.error.message },
+      "Thumbnail upload: buffer read failed",
+    )
     return { url: imageUrl, assetId: null }
   }
 
   const buffer = bufferResult.value
+  logger.info(
+    { imageUrl, size: buffer.byteLength, contentType },
+    "Thumbnail upload: fetched image, uploading to R2",
+  )
+
   const r2 = getR2Storage()
   const uploadResult = await r2.uploadImage(buffer, contentType)
 
   if (R.isError(uploadResult)) {
-    logger.warn(`R2 upload failed, using original URL: ${imageUrl}`)
+    logger.error(
+      { imageUrl, error: uploadResult.error.message },
+      "Thumbnail upload: R2 upload failed",
+    )
     return { url: imageUrl, assetId: null }
   }
 

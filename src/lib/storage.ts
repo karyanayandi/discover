@@ -16,6 +16,7 @@ import {
   r2Domain,
   r2SecretKey,
 } from "@/lib/env"
+import { logger } from "@/lib/logger"
 
 type AssetType = "images" | "videos" | "documents" | "archives" | "others"
 
@@ -90,6 +91,10 @@ class R2Storage {
     _contentType: string,
   ): Promise<Result<string, StorageValidationError | StorageUploadError>> {
     if (buffer.length > MAX_IMAGE_SIZE) {
+      logger.warn(
+        { size: buffer.length, max: MAX_IMAGE_SIZE },
+        "R2 uploadImage: image exceeds max size",
+      )
       return Promise.resolve(
         Result.err(
           new StorageValidationError({
@@ -101,6 +106,11 @@ class R2Storage {
 
     const extension = this.validateImageMagicBytes(buffer)
     if (!extension) {
+      const header = buffer.subarray(0, 16).toString("hex")
+      logger.warn(
+        { header },
+        "R2 uploadImage: invalid magic bytes — not jpg/png/gif/webp",
+      )
       return Promise.resolve(
         Result.err(
           new StorageValidationError({ message: "Invalid image file type" }),
@@ -108,12 +118,20 @@ class R2Storage {
       )
     }
 
+    logger.info(
+      { extension, size: buffer.length },
+      "R2 uploadImage: processing and uploading",
+    )
+
     return Result.gen(
       async function* (this: R2Storage) {
         const processed = yield* await this.processImage(buffer)
         const key = this.generateUniqueKey("images", "webp")
+        logger.info({ key }, "R2 uploadImage: uploading to bucket")
         yield* await this.uploadWithRetry(processed, key, "image/webp")
-        return Result.ok(`${this.publicUrl}/${key}`)
+        const url = `${this.publicUrl}/${key}`
+        logger.info({ url }, "R2 uploadImage: success")
+        return Result.ok(url)
       }.bind(this),
     )
   }
@@ -372,6 +390,17 @@ let r2Instance: R2Storage | null = null
 
 export function getR2Storage(): R2Storage {
   if (!r2Instance) {
+    logger.info(
+      {
+        hasAccountId: !!cfAccountId,
+        hasAccessKey: !!r2AccessKey,
+        hasSecretKey: !!r2SecretKey,
+        bucket: r2Bucket || "(empty)",
+        domain: r2Domain || "(empty)",
+      },
+      "R2 Storage: initializing",
+    )
+
     const config: R2Config = {
       accountId: cfAccountId,
       accessKeyId: r2AccessKey,

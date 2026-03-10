@@ -1,5 +1,8 @@
 import { defineMiddleware, sequence } from "astro:middleware"
 import { auth } from "@/lib/auth"
+import { initScheduler } from "@/lib/pipeline/scheduler"
+
+void initScheduler()
 
 const sessionMiddleware = defineMiddleware(async (context, next) => {
   const session = await auth.api.getSession({

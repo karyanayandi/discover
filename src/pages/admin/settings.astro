@@ -1,0 +1,97 @@
+---
+import ApiKeyForm from "@/components/admin/api-key-form.svelte"
+import PipelineScheduler from "@/components/admin/pipeline-scheduler.svelte"
+import AdminLayout from "@/layouts/admin-layout.astro"
+import { db } from "@/lib/db/client"
+import { appConfigTable } from "@/lib/db/schemas"
+import { eq } from "drizzle-orm"
+
+const configRow = await db.query.appConfigTable.findFirst({
+  where: eq(appConfigTable.key, "openai_api_key"),
+})
+
+const rawKey = configRow?.value ?? ""
+const maskedKey = rawKey ? `${rawKey.slice(0, 5)}...${rawKey.slice(-4)}` : ""
+---
+
+<AdminLayout title="Settings — Admin">
+  <div class="space-y-8">
+    <div>
+      <h2 class="text-2xl font-bold tracking-tight">Settings</h2>
+      <p class="text-muted-foreground">
+        Configure platform settings and API keys.
+      </p>
+    </div>
+
+    <div class="max-w-xl">
+      <ApiKeyForm {maskedKey} client:load />
+    </div>
+
+    <div class="max-w-xl rounded-xl border border-border bg-card p-6">
+      <h3 class="mb-2 font-semibold">Pipeline</h3>
+      <p class="mb-4 text-sm text-muted-foreground">
+        Manually trigger the AI article pipeline to ingest, cluster,
+        and summarize new articles from configured feeds.
+      </p>
+      <button
+        id="run-pipeline"
+        class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polygon points="6 3 20 12 6 21 6 3"></polygon>
+        </svg>
+        <span id="run-pipeline-label">Run Pipeline</span>
+      </button>
+    </div>
+
+    <div class="max-w-xl rounded-xl border border-border bg-card p-6">
+      <h3 class="mb-2 font-semibold">Scheduled Fetching</h3>
+      <p class="mb-4 text-sm text-muted-foreground">
+        Automatically run the pipeline at a set interval to keep
+        articles up to date.
+      </p>
+      <PipelineScheduler client:load />
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  const btn = document.getElementById("run-pipeline")
+  const btnLabel = document.getElementById("run-pipeline-label")
+  btn?.addEventListener("click", async () => {
+    if (btn.getAttribute("disabled")) return
+    if (btnLabel) btnLabel.textContent = "Running..."
+    btn.setAttribute("disabled", "true")
+    btn.classList.add("opacity-60", "pointer-events-none")
+    try {
+      const res = await fetch("/api/internal/pipeline/run", {
+        method: "POST",
+      })
+      const data = await res.json()
+      if (res.ok) {
+        const r = data.result
+        alert(
+          `Pipeline completed!\n${r.articlesCreated} articles created from ${r.clustersFound} clusters.\n${r.errors?.length ?? 0} errors.`,
+        )
+      } else {
+        alert(`Pipeline failed: ${data.error ?? "Unknown error"}`)
+      }
+    } catch {
+      alert("Network error — check server logs")
+    } finally {
+      if (btnLabel) btnLabel.textContent = "Run Pipeline"
+      btn.removeAttribute("disabled")
+      btn.classList.remove("opacity-60", "pointer-events-none")
+    }
+  })
+</script>

@@ -26,6 +26,6 @@ const { title = "Discover", description = "AI-curated news and insights" } =
   <body class="min-h-screen bg-background text-foreground antialiased">
     <SiteHeader />
     <slot />
-    <Toaster client:load />
+    <Toaster client:only="svelte" />
   </body>
 </html>
