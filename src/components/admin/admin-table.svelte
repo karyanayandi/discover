@@ -79,7 +79,7 @@ export interface AdminTableAction<T = Record<string, unknown>> {
           </Table.Head>
         {/each}
         {#if actions.length > 0}
-          <Table.Head class="w-[100px] text-right">Actions</Table.Head>
+          <Table.Head class="w-25 text-right">Actions</Table.Head>
         {/if}
       </Table.Row>
     </Table.Header>
