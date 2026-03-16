@@ -30,18 +30,20 @@ const modelOptions: ModelOption[] = [
 ]
 
 let {
-  value = $bindable(""),
+  value = "",
   label = "AI Model",
   id = "ai-model-select",
+  onChange,
 }: {
   value?: string
   label?: string
   id?: string
+  onChange?: (value: string) => void
 } = $props()
 
 function handleChange(e: Event) {
   const target = e.target as HTMLSelectElement
-  value = target.value
+  onChange?.(target.value)
 }
 </script>
 

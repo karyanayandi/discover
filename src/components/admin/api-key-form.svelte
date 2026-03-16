@@ -3,6 +3,8 @@ import Button from "@/components/ui/button/button.svelte"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "svelte-sonner"
+import { createForm } from "@tanstack/svelte-form"
+import { z } from "zod"
 
 let {
   maskedKey = "",
@@ -10,22 +12,28 @@ let {
   maskedKey?: string
 } = $props()
 
-let apiKey = $state("")
-let loading = $state(false)
+const apiKeySchema = z.object({
+  apiKey: z.string().min(1, "API key is required"),
+})
 
-async function handleSubmit(e: SubmitEvent) {
-  e.preventDefault()
-  if (!apiKey.trim()) {
-    toast.error("API key is required")
-    return
-  }
+interface ApiKeyFormData {
+  apiKey: string
+}
 
-  loading = true
-  try {
+const form = createForm(() => ({
+  defaultValues: {
+    apiKey: "",
+  } as ApiKeyFormData,
+  validators: {
+    onChange: apiKeySchema,
+  },
+  onSubmit: async ({ value }: { value: ApiKeyFormData }) => {
     const res = await fetch("/api/admin/config", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify([{ key: "openai_api_key", value: apiKey.trim() }]),
+      body: JSON.stringify([
+        { key: "openai_api_key", value: value.apiKey.trim() },
+      ]),
     })
 
     if (!res.ok) {
@@ -35,17 +43,16 @@ async function handleSubmit(e: SubmitEvent) {
     }
 
     toast.success("API key updated")
-    apiKey = ""
-  } catch {
-    toast.error("Network error")
-  } finally {
-    loading = false
-  }
-}
+    form.reset()
+  },
+}))
 </script>
 
 <form
-  onsubmit={handleSubmit}
+  onsubmit={(e) => {
+    e.preventDefault()
+    form.handleSubmit()
+  }}
   class="space-y-4 rounded-xl border border-border bg-card p-6"
 >
   <h3 class="font-semibold">OpenAI API Key</h3>
@@ -56,22 +63,32 @@ async function handleSubmit(e: SubmitEvent) {
     </div>
   {/if}
 
-  <div class="space-y-2">
-    <Label for="api-key">New API Key</Label>
-    <Input
-      id="api-key"
-      type="password"
-      placeholder="sk-..."
-      bind:value={apiKey}
-      autocomplete="off"
-    />
-    <p class="text-xs text-muted-foreground">
-      Used for AI article summarization. Stored encrypted in the database.
-    </p>
-  </div>
+  <form.Field name="apiKey">
+    {#snippet children(field)}
+      <div class="space-y-2">
+        <Label for="api-key">New API Key</Label>
+        <Input
+          id="api-key"
+          name="apiKey"
+          type="password"
+          placeholder="sk-..."
+          value={field.state.value as string}
+          oninput={(e) => field.handleChange(e.currentTarget.value)}
+          onblur={field.handleBlur}
+          autocomplete="off"
+        />
+        {#if field.state.meta.errors.length > 0}
+          <span class="text-sm text-red-500">{field.state.meta.errors[0]}</span>
+        {/if}
+        <p class="text-xs text-muted-foreground">
+          Used for AI article summarization. Stored encrypted in the database.
+        </p>
+      </div>
+    {/snippet}
+  </form.Field>
 
-  <Button type="submit" disabled={loading}>
-    {#if loading}
+  <Button type="submit" disabled={form.state.isSubmitting}>
+    {#if form.state.isSubmitting}
       Saving...
     {:else}
       Update API Key

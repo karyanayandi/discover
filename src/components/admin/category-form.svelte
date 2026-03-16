@@ -3,6 +3,8 @@ import Button from "@/components/ui/button/button.svelte"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "svelte-sonner"
+import { createForm } from "@tanstack/svelte-form"
+import { z } from "zod"
 
 let {
   category = null,
@@ -17,38 +19,28 @@ let {
   onSuccess?: () => void
 } = $props()
 
-let name = $state(category?.name ?? "")
-let slug = $state(category?.slug ?? "")
-let description = $state(category?.description ?? "")
-let loading = $state(false)
-let slugManuallyEdited = $state(!!category)
+const categorySchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  slug: z.string().min(1, "Slug is required"),
+  description: z.string(),
+})
 
-function generateSlug(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
+interface CategoryFormData {
+  name: string
+  slug: string
+  description: string
 }
 
-function handleNameInput() {
-  if (!slugManuallyEdited) {
-    slug = generateSlug(name)
-  }
-}
-
-function handleSlugInput() {
-  slugManuallyEdited = true
-}
-
-async function handleSubmit(e: SubmitEvent) {
-  e.preventDefault()
-  if (!name.trim() || !slug.trim()) {
-    toast.error("Name and slug are required")
-    return
-  }
-
-  loading = true
-  try {
+const form = createForm(() => ({
+  defaultValues: {
+    name: category?.name ?? "",
+    slug: category?.slug ?? "",
+    description: category?.description ?? "",
+  } as CategoryFormData,
+  validators: {
+    onChange: categorySchema,
+  },
+  onSubmit: async ({ value }: { value: CategoryFormData }) => {
     const endpoint = category
       ? `/api/admin/categories/${category.id}`
       : "/api/admin/categories"
@@ -58,9 +50,9 @@ async function handleSubmit(e: SubmitEvent) {
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: name.trim(),
-        slug: slug.trim(),
-        description: description.trim() || null,
+        name: value.name.trim(),
+        slug: value.slug.trim(),
+        description: value.description.trim() || null,
       }),
     })
 
@@ -72,63 +64,120 @@ async function handleSubmit(e: SubmitEvent) {
 
     toast.success(category ? "Category updated" : "Category created")
     if (!category) {
-      name = ""
-      slug = ""
-      description = ""
-      slugManuallyEdited = false
+      form.reset()
+      isManualSlug = false
     }
     onSuccess?.()
-  } catch {
-    toast.error("Network error")
-  } finally {
-    loading = false
+  },
+}))
+
+let isManualSlug = $state(!!category)
+
+function generateSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+}
+
+$effect(() => {
+  if (category) {
+    form.setFieldValue("name", category.name)
+    form.setFieldValue("slug", category.slug)
+    form.setFieldValue("description", category.description ?? "")
+    isManualSlug = true
   }
+})
+
+$effect(() => {
+  const name = form.getFieldValue("name")
+  if (!isManualSlug && name) {
+    form.setFieldValue("slug", generateSlug(name))
+  }
+})
+
+function handleSlugInput() {
+  isManualSlug = true
 }
 </script>
 
 <form
-  onsubmit={handleSubmit}
+  onsubmit={(e) => {
+    e.preventDefault()
+    form.handleSubmit()
+  }}
   class="space-y-4 rounded-xl border border-border bg-card p-6"
 >
   <h3 class="font-semibold">
     {category ? "Edit Category" : "Add Category"}
   </h3>
 
-  <div class="space-y-2">
-    <Label for="cat-name">Name</Label>
-    <Input
-      id="cat-name"
-      placeholder="Technology"
-      bind:value={name}
-      oninput={handleNameInput}
-    />
-  </div>
+  <form.Field name="name">
+    {#snippet children(field)}
+      <div class="space-y-2">
+        <Label for="cat-name">Name</Label>
+        <Input
+          id="cat-name"
+          name="name"
+          placeholder="Technology"
+          value={field.state.value as string}
+          oninput={(e) => field.handleChange(e.currentTarget.value)}
+          onblur={field.handleBlur}
+        />
+        {#if field.state.meta.errors.length > 0}
+          <span class="text-sm text-red-500">{field.state.meta.errors[0]}</span>
+        {/if}
+      </div>
+    {/snippet}
+  </form.Field>
 
-  <div class="space-y-2">
-    <Label for="cat-slug">Slug</Label>
-    <Input
-      id="cat-slug"
-      placeholder="technology"
-      bind:value={slug}
-      oninput={handleSlugInput}
-    />
-    <p class="text-xs text-muted-foreground">
-      URL-friendly identifier. Auto-generated from name.
-    </p>
-  </div>
+  <form.Field name="slug">
+    {#snippet children(field)}
+      <div class="space-y-2">
+        <Label for="cat-slug">Slug</Label>
+        <Input
+          id="cat-slug"
+          name="slug"
+          placeholder="technology"
+          value={field.state.value as string}
+          oninput={(e) => {
+            handleSlugInput()
+            field.handleChange(e.currentTarget.value)
+          }}
+          onblur={field.handleBlur}
+        />
+        {#if field.state.meta.errors.length > 0}
+          <span class="text-sm text-red-500">{field.state.meta.errors[0]}</span>
+        {/if}
+        <p class="text-xs text-muted-foreground">
+          URL-friendly identifier. Auto-generated from name.
+        </p>
+      </div>
+    {/snippet}
+  </form.Field>
 
-  <div class="space-y-2">
-    <Label for="cat-desc">Description (optional)</Label>
-    <Input
-      id="cat-desc"
-      placeholder="Articles about technology"
-      bind:value={description}
-    />
-  </div>
+  <form.Field name="description">
+    {#snippet children(field)}
+      <div class="space-y-2">
+        <Label for="cat-desc">Description (optional)</Label>
+        <Input
+          id="cat-desc"
+          name="description"
+          placeholder="Articles about technology"
+          value={field.state.value as string}
+          oninput={(e) => field.handleChange(e.currentTarget.value)}
+          onblur={field.handleBlur}
+        />
+        {#if field.state.meta.errors.length > 0}
+          <span class="text-sm text-red-500">{field.state.meta.errors[0]}</span>
+        {/if}
+      </div>
+    {/snippet}
+  </form.Field>
 
   <div class="flex gap-2">
-    <Button type="submit" disabled={loading}>
-      {#if loading}
+    <Button type="submit" disabled={form.state.isSubmitting}>
+      {#if form.state.isSubmitting}
         Saving...
       {:else}
         {category ? "Update" : "Add Category"}
