@@ -103,6 +103,7 @@ interface ThumbnailInfo {
 function storeArticle(
   summary: SummarizedArticle,
   citations: ExtractedCitation[],
+  sourceUrls: string[],
   thumbnail?: ThumbnailInfo,
 ): Promise<Result<void, PipelineError>> {
   return R.gen(async function* () {
@@ -139,10 +140,12 @@ function storeArticle(
       )
 
       // Process images in each section body
+      const sourceUrl = sourceUrls.length > 0 ? sourceUrls[0] : undefined
+
       const processedSections = await Promise.all(
         summary.sections.map(async (section, i) => {
           const { processedBody, uploadedCount, failedCount } =
-            await processSectionImages(section.body)
+            await processSectionImages(section.body, sourceUrl)
 
           if (uploadedCount > 0 || failedCount > 0) {
             logger.info(
@@ -318,9 +321,12 @@ export function runPipeline(): Promise<Result<PipelineResult, PipelineError>> {
         .map((item) => thumbnailsByLink.get(item.link))
         .find((t): t is ThumbnailInfo => t !== undefined)
 
+      const sourceUrls = citations.map((c) => c.url)
+
       const storeResult = await storeArticle(
         summaryResult.value,
         citations,
+        sourceUrls,
         thumbnail,
       )
 

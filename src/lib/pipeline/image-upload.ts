@@ -4,17 +4,84 @@ import { db } from "@/lib/db/client"
 import { assetsTable } from "@/lib/db/schemas"
 import { logger } from "@/lib/logger"
 import { getR2Storage } from "@/lib/storage"
+import { resolveImageUrl } from "@/lib/utils/url"
 import { ImageUploadError } from "./errors"
+
+const VALIDATION_TIMEOUT_MS = 5000
+
+export async function validateImageUrl(url: string): Promise<boolean> {
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      VALIDATION_TIMEOUT_MS,
+    )
+
+    const response = await fetch(url, {
+      method: "HEAD",
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (response.status === 200) {
+      return true
+    }
+
+    logger.warn(
+      { url, status: response.status },
+      "Image URL validation failed: non-200 status",
+    )
+    return false
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      logger.warn(
+        { url },
+        "Image URL validation timed out, will attempt upload anyway",
+      )
+      return true
+    }
+
+    logger.warn(
+      { url, error: error instanceof Error ? error.message : "Unknown error" },
+      "Image URL validation failed",
+    )
+    return false
+  }
+}
 
 export interface UploadedImage {
   url: string
   assetId: string | null
 }
 
-/**
- * Upload an image to R2 storage and create an asset record.
- * Returns the R2 URL and asset ID.
- */
+class ImageProcessingCache {
+  private processing = new Set<string>()
+  private results = new Map<string, UploadedImage>()
+
+  isProcessing(url: string): boolean {
+    return this.processing.has(url)
+  }
+
+  getResult(url: string): UploadedImage | undefined {
+    return this.results.get(url)
+  }
+
+  setProcessing(url: string): void {
+    this.processing.add(url)
+  }
+
+  setResult(url: string, result: UploadedImage): void {
+    this.results.set(url, result)
+    this.processing.delete(url)
+  }
+
+  clear(): void {
+    this.processing.clear()
+    this.results.clear()
+  }
+}
+
 export async function uploadImageToR2(
   imageUrl: string,
   options?: {
@@ -186,13 +253,23 @@ export function extractHtmlImageUrls(content: string): string[] {
 /**
  * Extract all unique image URLs from content (markdown + HTML).
  */
-export function extractImageUrls(content: string): string[] {
+export function extractImageUrls(
+  content: string,
+  sourceUrl?: string,
+): string[] {
   const markdownUrls = extractMarkdownImageUrls(content)
   const htmlUrls = extractHtmlImageUrls(content)
   const allUrls = [...markdownUrls, ...htmlUrls]
 
-  // Remove duplicates while preserving order
-  return allUrls.filter((url, index) => allUrls.indexOf(url) === index)
+  const uniqueUrls = allUrls.filter(
+    (url, index) => allUrls.indexOf(url) === index,
+  )
+
+  if (!sourceUrl) {
+    return uniqueUrls
+  }
+
+  return uniqueUrls.map((url) => resolveImageUrl(url, sourceUrl))
 }
 
 /**
@@ -222,12 +299,15 @@ export function replaceImageUrls(
  * Process inline images in a section body.
  * Extracts URLs, uploads to R2, and replaces with R2 URLs.
  */
-export async function processSectionImages(body: string): Promise<{
+export async function processSectionImages(
+  body: string,
+  sourceUrl?: string,
+): Promise<{
   processedBody: string
   uploadedCount: number
   failedCount: number
 }> {
-  const imageUrls = extractImageUrls(body)
+  const imageUrls = extractImageUrls(body, sourceUrl)
 
   if (imageUrls.length === 0) {
     return { processedBody: body, uploadedCount: 0, failedCount: 0 }
@@ -242,7 +322,8 @@ export async function processSectionImages(body: string): Promise<{
   let uploadedCount = 0
   let failedCount = 0
 
-  // Process images in parallel with concurrency limit
+  const cache = new ImageProcessingCache()
+
   const concurrencyLimit = 3
   const batches: string[][] = []
 
@@ -252,8 +333,24 @@ export async function processSectionImages(body: string): Promise<{
 
   for (const batch of batches) {
     const uploadPromises = batch.map(async (url) => {
+      const cachedResult = cache.getResult(url)
+      if (cachedResult) {
+        if (cachedResult.url !== url) {
+          urlMap.set(url, cachedResult.url)
+          uploadedCount++
+        }
+        return
+      }
+
+      if (cache.isProcessing(url)) {
+        return
+      }
+
+      cache.setProcessing(url)
+
       try {
         const result = await uploadImageToR2(url, { context: "inline-image" })
+        cache.setResult(url, result)
 
         if (result.url !== url) {
           urlMap.set(url, result.url)
@@ -263,7 +360,6 @@ export async function processSectionImages(body: string): Promise<{
             "Inline image uploaded to R2",
           )
         } else {
-          // URL unchanged means upload failed, original preserved
           failedCount++
           logger.warn(
             { url },
@@ -272,6 +368,7 @@ export async function processSectionImages(body: string): Promise<{
         }
       } catch (error) {
         failedCount++
+        cache.setResult(url, { url: url, assetId: null })
         logger.warn(
           {
             url,
