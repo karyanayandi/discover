@@ -89,9 +89,34 @@ export const verificationsTable = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 )
 
+export const apiKeysTable = pgTable(
+  "api_keys",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    keyHash: text("key_hash").notNull().unique(),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    lastUsedAt: timestamp("last_used_at"),
+  },
+  (table) => [
+    index("api_key_userId_idx").on(table.userId),
+    index("api_key_keyHash_idx").on(table.keyHash),
+    index("api_key_isActive_idx").on(table.isActive),
+  ],
+)
+
 export const userRelations = relations(usersTable, ({ many }) => ({
   sessions: many(sessionsTable),
   accounts: many(accountsTable),
+  apiKeys: many(apiKeysTable),
 }))
 
 export const sessionRelations = relations(sessionsTable, ({ one }) => ({
@@ -104,6 +129,13 @@ export const sessionRelations = relations(sessionsTable, ({ one }) => ({
 export const accountRelations = relations(accountsTable, ({ one }) => ({
   user: one(usersTable, {
     fields: [accountsTable.userId],
+    references: [usersTable.id],
+  }),
+}))
+
+export const apiKeyRelations = relations(apiKeysTable, ({ one }) => ({
+  user: one(usersTable, {
+    fields: [apiKeysTable.userId],
     references: [usersTable.id],
   }),
 }))
@@ -131,3 +163,9 @@ export const updateVerificationSchema = createUpdateSchema(verificationsTable)
 
 export type SelectVerification = typeof verificationsTable.$inferSelect
 export type InsertVerification = typeof verificationsTable.$inferInsert
+
+export const insertApiKeySchema = createInsertSchema(apiKeysTable)
+export const updateApiKeySchema = createUpdateSchema(apiKeysTable)
+
+export type SelectApiKey = typeof apiKeysTable.$inferSelect
+export type InsertApiKey = typeof apiKeysTable.$inferInsert

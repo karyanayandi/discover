@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro"
-import { Result } from "better-result"
+import { Result as R } from "better-result"
 
 import { isAdmin } from "@/lib/auth/is-admin"
 import { logger } from "@/lib/logger"
@@ -14,7 +14,7 @@ export const POST: APIRoute = async ({ locals }) => {
 
   const result = await runPipeline()
 
-  if (Result.isError(result)) {
+  if (R.isError(result)) {
     logger.error(`Pipeline failed: ${result.error.message}`)
     return Response.json({ error: result.error.message }, { status: 500 })
   }

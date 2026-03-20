@@ -16,5 +16,6 @@ declare namespace App {
   interface Locals {
     user: User | null
     session: import("better-auth").Session | null
+    apiKeyAuth?: boolean
   }
 }

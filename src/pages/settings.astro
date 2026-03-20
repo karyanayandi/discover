@@ -1,0 +1,53 @@
+---
+import ApiKeyManager from "@/components/api-key-manager.svelte"
+import Layout from "@/layouts/layout.astro"
+
+const user = Astro.locals.user
+
+if (!user) {
+  return Astro.redirect("/login")
+}
+---
+
+<Layout title="Settings — Discover">
+  <div class="container mx-auto max-w-4xl px-4 py-8">
+    <div class="space-y-8">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Settings</h1>
+        <p class="text-muted-foreground">Manage your account settings and API keys.</p>
+      </div>
+
+      <!-- API Keys Section -->
+      <div class="rounded-xl border border-border bg-card p-6">
+        <ApiKeyManager user={user} client:load />
+      </div>
+
+      <!-- User Profile Section -->
+      <div class="rounded-xl border border-border bg-card p-6">
+        <h3 class="text-lg font-semibold">Profile</h3>
+        <p class="text-sm text-muted-foreground">Your account information</p>
+
+        <div class="mt-4 space-y-4">
+          <div class="flex items-center gap-4">
+            {user.image && (
+              <img
+                src={user.image}
+                alt={user.name}
+                class="h-16 w-16 rounded-full object-cover"
+              />
+            )}
+            <div>
+              <div class="font-medium">{user.name}</div>
+              <div class="text-sm text-muted-foreground">{user.email}</div>
+              {user.role && (
+                <div class="mt-1 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                  {user.role}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
