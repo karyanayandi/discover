@@ -27,5 +27,14 @@ const { title = "Discover", description = "AI-curated news and insights" } =
     <SiteHeader />
     <slot />
     <Toaster client:only="svelte" />
+
+    <script>
+      import { initElementSource } from "@/lib/element-source"
+
+      if (typeof window !== "undefined") {
+        console.log("[Element Source] Script loaded, initializing...")
+        void initElementSource()
+      }
+    </script>
   </body>
 </html>

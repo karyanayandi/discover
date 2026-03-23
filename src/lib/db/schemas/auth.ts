@@ -140,6 +140,36 @@ export const apiKeyRelations = relations(apiKeysTable, ({ one }) => ({
   }),
 }))
 
+// Platform API Keys (admin-managed service integrations)
+export const platformApiKeysTable = pgTable(
+  "platform_api_keys",
+  {
+    id: text("id").primaryKey(),
+    provider: text("provider").notNull(),
+    name: text("name").notNull(),
+    keyHash: text("key_hash").notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    lastUsedAt: timestamp("last_used_at"),
+  },
+  (table) => [
+    index("platform_api_key_provider_idx").on(table.provider),
+    index("platform_api_key_isActive_idx").on(table.isActive),
+  ],
+)
+
+export const insertPlatformApiKeySchema =
+  createInsertSchema(platformApiKeysTable)
+export const updatePlatformApiKeySchema =
+  createUpdateSchema(platformApiKeysTable)
+
+export type SelectPlatformApiKey = typeof platformApiKeysTable.$inferSelect
+export type InsertPlatformApiKey = typeof platformApiKeysTable.$inferInsert
+
 export const insertUserSchema = createInsertSchema(usersTable)
 export const updateUserSchema = createUpdateSchema(usersTable)
 

@@ -43,6 +43,13 @@
       "when": 1773866446811,
       "tag": "0005_abnormal_leper_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1773969567276,
+      "tag": "0006_dizzy_the_fury",
+      "breakpoints": true
     }
   ]
 }

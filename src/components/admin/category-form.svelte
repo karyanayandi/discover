@@ -71,7 +71,11 @@ const form = createForm(() => ({
   },
 }))
 
-let isManualSlug = $state(!!category)
+let isManualSlug = $state(false)
+
+$effect.pre(() => {
+  isManualSlug = category !== null
+})
 
 function generateSlug(value: string): string {
   return value

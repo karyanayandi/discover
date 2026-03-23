@@ -142,3 +142,8 @@
   animation: indeterminate-progress 1.5s ease-in-out infinite;
 }
 
+[data-element-source-hover] {
+  outline: 2px dashed #3b82f6;
+  outline-offset: 2px;
+}
+

@@ -205,5 +205,14 @@ const navItems = [
     </div>
 
     <Toaster client:load />
+
+    <script>
+      import { initElementSource } from "@/lib/element-source"
+
+      if (typeof window !== "undefined") {
+        console.log("[Element Source] Script loaded, initializing...")
+        void initElementSource()
+      }
+    </script>
   </body>
 </html>

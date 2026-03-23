@@ -1,18 +1,8 @@
 ---
-import ApiKeyForm from "@/components/admin/api-key-form.svelte"
+import PlatformApiKeyManager from "@/components/admin/platform-api-key-manager.svelte"
 import PipelineRunButton from "@/components/admin/pipeline-run-button.svelte"
 import PipelineScheduler from "@/components/admin/pipeline-scheduler.svelte"
 import AdminLayout from "@/layouts/admin-layout.astro"
-import { db } from "@/lib/db/client"
-import { appConfigTable } from "@/lib/db/schemas"
-import { eq } from "drizzle-orm"
-
-const configRow = await db.query.appConfigTable.findFirst({
-  where: eq(appConfigTable.key, "openai_api_key"),
-})
-
-const rawKey = configRow?.value ?? ""
-const maskedKey = rawKey ? `${rawKey.slice(0, 5)}...${rawKey.slice(-4)}` : ""
 ---
 
 <AdminLayout title="Settings — Admin">
@@ -24,8 +14,8 @@ const maskedKey = rawKey ? `${rawKey.slice(0, 5)}...${rawKey.slice(-4)}` : ""
       </p>
     </div>
 
-    <div class="max-w-xl">
-      <ApiKeyForm {maskedKey} client:load />
+    <div class="max-w-4xl">
+      <PlatformApiKeyManager client:load />
     </div>
 
     <div class="max-w-xl rounded-xl border border-border bg-card p-6">
