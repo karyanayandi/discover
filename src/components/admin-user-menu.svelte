@@ -2,7 +2,6 @@
 import { Image } from "@unpic/svelte"
 import { authClient } from "@/lib/auth/client"
 import { userStore } from "@/stores/user"
-import { Button } from "@/components/ui/button"
 import ThemeToggle from "@/components/ui/theme-toggle.svelte"
 import {
   DropdownMenu,
@@ -20,16 +19,6 @@ $effect(() => {
     user = u
   })
 })
-
-async function handleSignIn() {
-  const result = await authClient.signIn.social({
-    provider: "google",
-    callbackURL: "/",
-  })
-  if (result.data?.url) {
-    window.location.href = result.data.url
-  }
-}
 
 async function handleSignOut() {
   await authClient.signOut()
@@ -67,26 +56,29 @@ async function handleSignOut() {
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
       <DropdownMenuItem>
-        <a href="/library" class="w-full">My Library</a>
+        <a href="/" class="flex w-full items-center gap-2">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+          Back to site
+        </a>
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <ThemeToggle />
-      {#if user.role === "admin"}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <a href="/api/internal/pipeline/run" class="w-full">
-            Run Pipeline
-          </a>
-        </DropdownMenuItem>
-      {/if}
       <DropdownMenuSeparator />
       <DropdownMenuItem onclick={handleSignOut}>
         Sign out
       </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>
-{:else}
-  <Button variant="outline" size="sm" onclick={handleSignIn}>
-    Sign in
-  </Button>
 {/if}

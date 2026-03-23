@@ -1,5 +1,8 @@
 ---
+import AdminUserMenu from "@/components/admin-user-menu.svelte"
+import StoreInit from "@/components/store-init.svelte"
 import { Toaster } from "@/components/ui/sonner"
+import { getThemeScript } from "@/lib/theme"
 import "@/styles/global.css"
 
 interface Props {
@@ -8,6 +11,9 @@ interface Props {
 
 const { title = "Admin — Discover" } = Astro.props
 const pathname = Astro.url.pathname
+const user = Astro.locals.user
+
+const themeScript = getThemeScript()
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: "home" },
@@ -18,13 +24,18 @@ const navItems = [
 ]
 ---
 
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
+    <script set:html={themeScript} is:inline />
   </head>
   <body class="min-h-screen bg-background text-foreground antialiased">
+    <StoreInit
+      user={user ? { id: user.id, name: user.name, email: user.email, image: user.image ?? null, role: user.role ?? null } : null}
+      client:load
+    />
     <div class="flex min-h-screen">
       <aside
         class="hidden w-64 shrink-0 border-r border-border bg-muted/30 lg:flex lg:flex-col"
@@ -159,28 +170,6 @@ const navItems = [
             })
           }
         </nav>
-
-        <div class="border-t border-border p-4">
-          <a
-            href="/"
-            class="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m15 18-6-6 6-6"></path>
-            </svg>
-            Back to site
-          </a>
-        </div>
       </aside>
 
       <div class="flex flex-1 flex-col">
@@ -196,6 +185,7 @@ const navItems = [
           >
             Back to site
           </a>
+          <AdminUserMenu client:only="svelte" />
         </header>
 
         <main class="flex-1 p-6">

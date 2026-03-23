@@ -1,6 +1,7 @@
 ---
 import SiteHeader from "@/components/site-header.astro"
 import { Toaster } from "@/components/ui/sonner"
+import { getThemeScript } from "@/lib/theme"
 import "@/styles/global.css"
 
 interface Props {
@@ -10,6 +11,8 @@ interface Props {
 
 const { title = "Discover", description = "AI-curated news and insights" } =
   Astro.props
+
+const themeScript = getThemeScript()
 ---
 
 <!doctype html>
@@ -22,6 +25,7 @@ const { title = "Discover", description = "AI-curated news and insights" } =
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    <script set:html={themeScript} is:inline />
   </head>
   <body class="min-h-screen bg-background text-foreground antialiased">
     <SiteHeader />
