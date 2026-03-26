@@ -10,6 +10,7 @@ let {
   feed = null,
   onSuccess,
   onCancel,
+  variant = "dialog",
 }: {
   feed?: {
     id: string
@@ -19,6 +20,7 @@ let {
   } | null
   onSuccess?: () => void
   onCancel?: () => void
+  variant?: "dialog" | "card"
 } = $props()
 
 const feedSchema = z.object({
@@ -84,11 +86,15 @@ $effect(() => {
     e.preventDefault()
     form.handleSubmit()
   }}
-  class="space-y-4 rounded-xl border border-border bg-card p-6"
+  class={variant === "card"
+    ? "space-y-4 rounded-xl border border-border bg-card p-6"
+    : "space-y-4"}
 >
-  <h3 class="font-semibold">
-    {feed ? "Edit Feed Source" : "Add Feed Source"}
-  </h3>
+  {#if variant === "card"}
+    <h3 class="font-semibold">
+      {feed ? "Edit Feed Source" : "Add Feed Source"}
+    </h3>
+  {/if}
 
   <form.Field name="name">
     {#snippet children(field)}

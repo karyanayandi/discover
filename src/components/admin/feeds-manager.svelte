@@ -65,33 +65,35 @@ function handleAddSuccess() {
 <ConfirmDialog bind:this={confirmDialog} />
 
 <Dialog.Root bind:open={editDialogOpen}>
-  <Dialog.Portal>
-    <Dialog.Overlay />
-    <Dialog.Content class="sm:max-w-[425px]">
-      {#if selectedFeed}
-        <FeedForm
-          feed={selectedFeed}
-          onSuccess={handleEditSuccess}
-          onCancel={() => {
-            editDialogOpen = false
-            selectedFeed = null
-          }}
-        />
-      {/if}
-    </Dialog.Content>
-  </Dialog.Portal>
+  <Dialog.Content class="sm:max-w-[425px]">
+    <Dialog.Header>
+      <Dialog.Title>Edit Feed Source</Dialog.Title>
+    </Dialog.Header>
+    {#if selectedFeed}
+      <FeedForm
+        feed={selectedFeed}
+        onSuccess={handleEditSuccess}
+        onCancel={() => {
+          editDialogOpen = false
+          selectedFeed = null
+        }}
+        variant="dialog"
+      />
+    {/if}
+  </Dialog.Content>
 </Dialog.Root>
 
 <Dialog.Root bind:open={addDialogOpen}>
-  <Dialog.Portal>
-    <Dialog.Overlay />
-    <Dialog.Content class="sm:max-w-[425px]">
-      <FeedForm
-        onSuccess={handleAddSuccess}
-        onCancel={() => (addDialogOpen = false)}
-      />
-    </Dialog.Content>
-  </Dialog.Portal>
+  <Dialog.Content class="sm:max-w-[425px]">
+    <Dialog.Header>
+      <Dialog.Title>Add Feed Source</Dialog.Title>
+    </Dialog.Header>
+    <FeedForm
+      onSuccess={handleAddSuccess}
+      onCancel={() => (addDialogOpen = false)}
+      variant="dialog"
+    />
+  </Dialog.Content>
 </Dialog.Root>
 
 <div class="space-y-4">
