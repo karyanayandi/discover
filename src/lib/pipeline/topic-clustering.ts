@@ -159,5 +159,50 @@ export function clusterByTopic(
     })
   }
 
-  return clusters.sort((a, b) => b.items.length - a.items.length)
+  const merged = mergeSimilarClusters(clusters, 0.4)
+  return merged.sort((a, b) => b.items.length - a.items.length)
+}
+
+export function mergeSimilarClusters(
+  clusters: TopicCluster[],
+  mergeThreshold = 0.4,
+): TopicCluster[] {
+  if (clusters.length < 2) return clusters
+
+  const merged: TopicCluster[] = []
+  const used = new Set<number>()
+
+  for (let i = 0; i < clusters.length; i++) {
+    if (used.has(i)) continue
+
+    const clusterA = clusters[i]
+    const mergedCluster: TopicCluster = {
+      topic: clusterA.topic,
+      keywords: [...clusterA.keywords],
+      items: [...clusterA.items],
+    }
+
+    for (let j = i + 1; j < clusters.length; j++) {
+      if (used.has(j)) continue
+
+      const clusterB = clusters[j]
+      const similarity = computeSimilarity(
+        mergedCluster.keywords,
+        clusterB.keywords,
+      )
+
+      if (similarity >= mergeThreshold) {
+        mergedCluster.items.push(...clusterB.items)
+        mergedCluster.keywords = [
+          ...new Set([...mergedCluster.keywords, ...clusterB.keywords]),
+        ]
+        used.add(j)
+      }
+    }
+
+    merged.push(mergedCluster)
+    used.add(i)
+  }
+
+  return merged
 }

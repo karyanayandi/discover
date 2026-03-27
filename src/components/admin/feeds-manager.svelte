@@ -69,17 +69,15 @@ function handleAddSuccess() {
     <Dialog.Header>
       <Dialog.Title>Edit Feed Source</Dialog.Title>
     </Dialog.Header>
-    {#if selectedFeed}
-      <FeedForm
-        feed={selectedFeed}
-        onSuccess={handleEditSuccess}
-        onCancel={() => {
-          editDialogOpen = false
-          selectedFeed = null
-        }}
-        variant="dialog"
-      />
-    {/if}
+    <FeedForm
+      feed={selectedFeed}
+      onSuccess={handleEditSuccess}
+      onCancel={() => {
+        editDialogOpen = false
+        selectedFeed = null
+      }}
+      variant="dialog"
+    />
   </Dialog.Content>
 </Dialog.Root>
 

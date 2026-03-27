@@ -6,6 +6,8 @@ import { articlesTable } from "./articles"
 import { assetsTable } from "./assets"
 import { categoriesTable } from "./categories"
 import { citationsTable } from "./citations"
+import { clusterMergesTable } from "./cluster-merges"
+import { clustersTable } from "./clusters"
 import { feedItemsTable } from "./feed-items"
 import { feedSourcesTable } from "./feed-sources"
 import { savedArticlesTable } from "./saved-articles"
@@ -28,3 +30,24 @@ export const categoriesRelations = relations(categoriesTable, ({ many }) => ({
 export const feedSourcesRelations = relations(feedSourcesTable, ({ many }) => ({
   feedItems: many(feedItemsTable),
 }))
+
+export const clustersRelations = relations(clustersTable, ({ many }) => ({
+  sourceMerges: many(clusterMergesTable, { relationName: "sourceCluster" }),
+  targetMerges: many(clusterMergesTable, { relationName: "targetCluster" }),
+}))
+
+export const clusterMergesRelations = relations(
+  clusterMergesTable,
+  ({ one }) => ({
+    sourceCluster: one(clustersTable, {
+      fields: [clusterMergesTable.sourceClusterId],
+      references: [clustersTable.id],
+      relationName: "sourceCluster",
+    }),
+    targetCluster: one(clustersTable, {
+      fields: [clusterMergesTable.targetClusterId],
+      references: [clustersTable.id],
+      relationName: "targetCluster",
+    }),
+  }),
+)

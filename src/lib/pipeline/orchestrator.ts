@@ -239,165 +239,50 @@ export function runPipeline(): Promise<Result<PipelineResult, PipelineError>> {
       errors: [],
     }
 
-    logger.info("Pipeline: Starting feed ingestion...")
-    const ingestionResult = await ingestAllFeeds()
-    if (R.isError(ingestionResult)) {
-      return R.err(
-        new PipelineError({
-          message: "Feed ingestion failed",
-          cause: ingestionResult.error,
+    try {
+      logger.info("Pipeline: Starting feed ingestion...")
+      const ingestionResult = await ingestAllFeeds()
+      if (R.isError(ingestionResult)) {
+        return R.err(
+          new PipelineError({
+            message: "Feed ingestion failed",
+            cause: ingestionResult.error,
+          }),
+        )
+      }
+      result.feedsProcessed = ingestionResult.value.length
+
+      logger.info("Pipeline: Fetching pending feed items...")
+      const pendingItems = yield* R.await(
+        R.tryPromise({
+          try: () =>
+            db.query.feedItemsTable.findMany({
+              where: eq(feedItemsTable.status, "pending"),
+            }),
+          catch: (e) =>
+            new PipelineError({
+              message: "Failed to fetch pending feed items",
+              cause: e,
+            }),
         }),
       )
-    }
-    result.feedsProcessed = ingestionResult.value.length
 
-    logger.info("Pipeline: Fetching pending feed items...")
-    const pendingItems = yield* R.await(
-      R.tryPromise({
-        try: () =>
-          db.query.feedItemsTable.findMany({
-            where: eq(feedItemsTable.status, "pending"),
-          }),
-        catch: (e) =>
-          new PipelineError({
-            message: "Failed to fetch pending feed items",
-            cause: e,
-          }),
-      }),
-    )
-
-    if (pendingItems.length === 0) {
-      logger.info("Pipeline: No pending items to process")
-      return R.ok(result)
-    }
-
-    logger.info("Pipeline: Scraping articles for context...")
-    const thumbnailsByLink = new Map<string, ThumbnailInfo>()
-    const normalizedUrls = new Map<string, string>()
-
-    for (const item of pendingItems) {
-      if (!item.link) {
-        await R.tryPromise({
-          try: () =>
-            db
-              .update(feedItemsTable)
-              .set({ status: "skipped" })
-              .where(eq(feedItemsTable.id, item.id)),
-          catch: (e) =>
-            new PipelineError({
-              message: `Failed to mark item ${item.id} as skipped`,
-              cause: e,
-            }),
-        })
-        continue
+      if (pendingItems.length === 0) {
+        logger.info("Pipeline: No pending items to process")
+        return R.ok(result)
       }
 
-      const normalizedResult = normalizeAndCheckUrl(item.link)
-      if (R.isError(normalizedResult)) {
-        logger.warn(
-          `Failed to normalize URL for item ${item.id}: ${normalizedResult.error.message}`,
-        )
-        continue
-      }
+      logger.info("Pipeline: Scraping articles for context...")
+      const thumbnailsByLink = new Map<string, ThumbnailInfo>()
+      const normalizedUrls = new Map<string, string>()
 
-      const normalizedUrl = normalizedResult.value
-      normalizedUrls.set(item.id, normalizedUrl)
-
-      const existingItem = await db.query.feedItemsTable.findFirst({
-        where: eq(feedItemsTable.normalizedUrl, normalizedUrl),
-        columns: { id: true },
-      })
-
-      if (existingItem && existingItem.id !== item.id) {
-        logger.info(
-          { itemId: item.id, normalizedUrl },
-          "Duplicate URL detected, skipping",
-        )
-        await R.tryPromise({
-          try: () =>
-            db
-              .update(feedItemsTable)
-              .set({ status: "skipped", normalizedUrl })
-              .where(eq(feedItemsTable.id, item.id)),
-          catch: (e) =>
-            new PipelineError({
-              message: `Failed to mark item ${item.id} as skipped`,
-              cause: e,
-            }),
-        })
-        continue
-      }
-
-      const scraped = await scrapeArticle(item.link)
-      if (R.isOk(scraped)) {
-        if (scraped.value.thumbnailUrl) {
-          thumbnailsByLink.set(item.link, {
-            url: scraped.value.thumbnailUrl,
-            assetId: scraped.value.thumbnailAssetId,
-          })
-        }
-        await R.tryPromise({
-          try: () =>
-            db
-              .update(feedItemsTable)
-              .set({ status: "processing", normalizedUrl })
-              .where(eq(feedItemsTable.id, item.id)),
-          catch: (e) =>
-            new PipelineError({
-              message: `Failed to update item ${item.id} status`,
-              cause: e,
-            }),
-        })
-      }
-    }
-
-    logger.info("Pipeline: Clustering topics...")
-    const clusters = clusterByTopic(pendingItems)
-    result.clustersFound = clusters.length
-
-    logger.info(`Pipeline: Processing ${clusters.length} clusters...`)
-
-    for (const cluster of clusters) {
-      const model = await getModelForCluster(cluster.topic)
-      const summaryResult = await summarizeCluster(cluster, model)
-      if (R.isError(summaryResult)) {
-        result.errors.push(
-          `Summary failed for "${cluster.topic}": ${summaryResult.error.message}`,
-        )
-        continue
-      }
-
-      const citationResult = extractCitationsFromCluster(cluster.items)
-      const citations = R.isOk(citationResult) ? citationResult.value : []
-
-      const thumbnail = cluster.items
-        .filter(
-          (item): item is typeof item & { link: string } => item.link !== null,
-        )
-        .map((item) => thumbnailsByLink.get(item.link))
-        .find((t): t is ThumbnailInfo => t !== undefined)
-
-      const sourceUrls = citations.map((c) => c.url)
-
-      const { checkContentDuplicate } = await import("./dedup/service")
-      const dedupCheck = await checkContentDuplicate(
-        summaryResult.value.content,
-      )
-
-      if (dedupCheck.isDuplicate) {
-        logger.info(
-          { topic: cluster.topic, matchScore: dedupCheck.matchScore },
-          "Content duplicate detected, skipping cluster",
-        )
-        for (const item of cluster.items) {
+      for (const item of pendingItems) {
+        if (!item.link) {
           await R.tryPromise({
             try: () =>
               db
                 .update(feedItemsTable)
-                .set({
-                  status: "skipped",
-                  errorMessage: `Content duplicate (match score: ${dedupCheck.matchScore?.toFixed(2)})`,
-                })
+                .set({ status: "skipped" })
                 .where(eq(feedItemsTable.id, item.id)),
             catch: (e) =>
               new PipelineError({
@@ -405,63 +290,228 @@ export function runPipeline(): Promise<Result<PipelineResult, PipelineError>> {
                 cause: e,
               }),
           })
+          continue
         }
-        continue
+
+        const normalizedResult = normalizeAndCheckUrl(item.link)
+        if (R.isError(normalizedResult)) {
+          logger.warn(
+            `Failed to normalize URL for item ${item.id}: ${normalizedResult.error.message}`,
+          )
+          continue
+        }
+
+        const normalizedUrl = normalizedResult.value
+        normalizedUrls.set(item.id, normalizedUrl)
+
+        const existingItem = await db.query.feedItemsTable.findFirst({
+          where: eq(feedItemsTable.normalizedUrl, normalizedUrl),
+          columns: { id: true },
+        })
+
+        if (existingItem && existingItem.id !== item.id) {
+          logger.info(
+            { itemId: item.id, normalizedUrl },
+            "Duplicate URL detected, skipping",
+          )
+          await R.tryPromise({
+            try: () =>
+              db
+                .update(feedItemsTable)
+                .set({ status: "skipped", normalizedUrl })
+                .where(eq(feedItemsTable.id, item.id)),
+            catch: (e) =>
+              new PipelineError({
+                message: `Failed to mark item ${item.id} as skipped`,
+                cause: e,
+              }),
+          })
+          continue
+        }
+
+        const scraped = await scrapeArticle(item.link)
+        if (R.isOk(scraped)) {
+          if (scraped.value.thumbnailUrl) {
+            thumbnailsByLink.set(item.link, {
+              url: scraped.value.thumbnailUrl,
+              assetId: scraped.value.thumbnailAssetId,
+            })
+          }
+          await R.tryPromise({
+            try: () =>
+              db
+                .update(feedItemsTable)
+                .set({ status: "processing", normalizedUrl })
+                .where(eq(feedItemsTable.id, item.id)),
+            catch: (e) =>
+              new PipelineError({
+                message: `Failed to update item ${item.id} status`,
+                cause: e,
+              }),
+          })
+        }
       }
 
-      const storeResult = await storeArticle(
-        summaryResult.value,
-        citations,
-        sourceUrls,
-        thumbnail,
-        dedupCheck.fingerprint,
-      )
+      logger.info("Pipeline: Clustering topics...")
+      const clusters = clusterByTopic(pendingItems, 0.15, 72, 1)
+      result.clustersFound = clusters.length
 
-      if (storeResult.isErr()) {
-        result.errors.push(
-          `Store failed for "${cluster.topic}": ${storeResult.error.message}`,
+      logger.info(`Pipeline: Processing ${clusters.length} clusters...`)
+
+      for (const cluster of clusters) {
+        const model = await getModelForCluster(cluster.topic)
+        const summaryResult = await summarizeCluster(cluster, model)
+        if (R.isError(summaryResult)) {
+          result.errors.push(
+            `Summary failed for "${cluster.topic}": ${summaryResult.error.message}`,
+          )
+          // Mark all items in this cluster as failed
+          for (const item of cluster.items) {
+            await R.tryPromise({
+              try: () =>
+                db
+                  .update(feedItemsTable)
+                  .set({
+                    status: "failed",
+                    errorMessage: `Summary failed: ${summaryResult.error.message}`,
+                  })
+                  .where(eq(feedItemsTable.id, item.id)),
+              catch: (e) =>
+                new PipelineError({
+                  message: `Failed to mark item ${item.id} as failed`,
+                  cause: e,
+                }),
+            })
+          }
+          continue
+        }
+
+        const citationResult = extractCitationsFromCluster(cluster.items)
+        const citations = R.isOk(citationResult) ? citationResult.value : []
+
+        const thumbnail = cluster.items
+          .filter(
+            (item): item is typeof item & { link: string } =>
+              item.link !== null,
+          )
+          .map((item) => thumbnailsByLink.get(item.link))
+          .find((t): t is ThumbnailInfo => t !== undefined)
+
+        const sourceUrls = citations.map((c) => c.url)
+
+        const { checkContentDuplicate } = await import("./dedup/service")
+        const dedupCheck = await checkContentDuplicate(
+          summaryResult.value.content,
         )
+
+        if (dedupCheck.isDuplicate) {
+          logger.info(
+            { topic: cluster.topic, matchScore: dedupCheck.matchScore },
+            "Content duplicate detected, skipping cluster",
+          )
+          for (const item of cluster.items) {
+            await R.tryPromise({
+              try: () =>
+                db
+                  .update(feedItemsTable)
+                  .set({
+                    status: "skipped",
+                    errorMessage: `Content duplicate (match score: ${dedupCheck.matchScore?.toFixed(2)})`,
+                  })
+                  .where(eq(feedItemsTable.id, item.id)),
+              catch: (e) =>
+                new PipelineError({
+                  message: `Failed to mark item ${item.id} as skipped`,
+                  cause: e,
+                }),
+            })
+          }
+          continue
+        }
+
+        const storeResult = await storeArticle(
+          summaryResult.value,
+          citations,
+          sourceUrls,
+          thumbnail,
+          dedupCheck.fingerprint,
+        )
+
+        if (storeResult.isErr()) {
+          result.errors.push(
+            `Store failed for "${cluster.topic}": ${storeResult.error.message}`,
+          )
+          for (const item of cluster.items) {
+            await R.tryPromise({
+              try: () =>
+                db
+                  .update(feedItemsTable)
+                  .set({
+                    status: "failed",
+                    errorMessage: storeResult.error.message,
+                  })
+                  .where(eq(feedItemsTable.id, item.id)),
+              catch: (e) =>
+                new PipelineError({
+                  message: `Failed to mark item ${item.id} as failed`,
+                  cause: e,
+                }),
+            })
+          }
+          continue
+        }
+
+        result.articlesCreated++
+
         for (const item of cluster.items) {
           await R.tryPromise({
             try: () =>
               db
                 .update(feedItemsTable)
-                .set({
-                  status: "failed",
-                  errorMessage: storeResult.error.message,
-                })
+                .set({ status: "processed", processedAt: new Date() })
                 .where(eq(feedItemsTable.id, item.id)),
             catch: (e) =>
               new PipelineError({
-                message: `Failed to mark item ${item.id} as failed`,
+                message: `Failed to mark item ${item.id} as processed`,
                 cause: e,
               }),
           })
         }
-        continue
       }
 
-      result.articlesCreated++
+      logger.info(
+        `Pipeline complete: ${result.articlesCreated} articles created from ${result.clustersFound} clusters`,
+      )
+      return R.ok(result)
+    } catch (error) {
+      // If pipeline crashes, mark all processing items as failed
+      logger.error(`Pipeline crashed: ${error}`)
 
-      for (const item of cluster.items) {
-        await R.tryPromise({
-          try: () =>
-            db
-              .update(feedItemsTable)
-              .set({ status: "processed", processedAt: new Date() })
-              .where(eq(feedItemsTable.id, item.id)),
-          catch: (e) =>
-            new PipelineError({
-              message: `Failed to mark item ${item.id} as processed`,
-              cause: e,
-            }),
-        })
+      // Find all items currently in processing state and mark them as failed
+      const stuckItems = await db.query.feedItemsTable.findMany({
+        where: eq(feedItemsTable.status, "processing"),
+        columns: { id: true },
+      })
+
+      if (stuckItems.length > 0) {
+        logger.info(`Marking ${stuckItems.length} stuck items as failed`)
+        for (const item of stuckItems) {
+          await db
+            .update(feedItemsTable)
+            .set({
+              status: "failed",
+              errorMessage: `Pipeline crashed: ${error instanceof Error ? error.message : String(error)}`,
+            })
+            .where(eq(feedItemsTable.id, item.id))
+        }
       }
+
+      return R.err(
+        new PipelineError({
+          message: `Pipeline crashed: ${error instanceof Error ? error.message : String(error)}`,
+          cause: error,
+        }),
+      )
     }
-
-    logger.info(
-      `Pipeline complete: ${result.articlesCreated} articles created from ${result.clustersFound} clusters`,
-    )
-    return R.ok(result)
   })
 }

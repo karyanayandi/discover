@@ -22,7 +22,20 @@ function getConnectionString(): string {
 function getDb(): PostgresJsDatabase<typeof schema> {
   if (!_db) {
     const connectionString = getConnectionString()
-    const client = postgres(connectionString)
+    const client = postgres(connectionString, {
+      transform: {
+        undefined: null,
+      },
+      types: {
+        // Handle timestamp/timestamptz types (OIDs 1114, 1184)
+        timestamp: {
+          to: 1114,
+          from: [1114, 1184],
+          serialize: (date: Date) => date.toISOString(),
+          parse: (iso: string) => new Date(iso),
+        },
+      },
+    })
     _db = drizzle(client, { schema })
   }
   return _db

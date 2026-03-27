@@ -2,6 +2,7 @@ import { openai } from "@ai-sdk/openai"
 import { generateText, Output } from "ai"
 import type { Result } from "better-result"
 import { Result as R } from "better-result"
+import { marked } from "marked"
 import { slugify } from "transliteration"
 import { z } from "zod"
 
@@ -79,7 +80,16 @@ export function summarizeCluster(
             prompt: `You are a journalist writing for a news discovery platform similar to Perplexity.
 Synthesize the following ${cluster.items.length} source articles into a single comprehensive article.
 Write in a clear, professional tone. Include all key facts and perspectives.
-Use semantic HTML tags in section bodies: <p> for paragraphs, <strong> for emphasis, <ul>/<li> for lists, <h3> for subheadings. Do NOT use markdown.
+
+CRITICAL: Output must be valid HTML, NOT markdown.
+Use these HTML tags in section bodies:
+- <p> for paragraphs
+- <strong> or <em> for emphasis  
+- <ul>/<li> for lists
+- <h3> for subheadings
+- <a href="..."> for links
+
+DO NOT use markdown syntax like **bold**, *italic*, or [links](url). Use HTML tags instead.
 
 Topic: ${cluster.topic}
 Keywords: ${cluster.keywords.slice(0, 10).join(", ")}
@@ -101,10 +111,10 @@ ${sourceTexts}`,
     )
 
     const content = object.sections
-      .map(
-        (s) =>
-          `<section class="article-section"><h2>${s.heading}</h2>${s.body}</section>`,
-      )
+      .map((s) => {
+        const bodyHtml = marked.parse(s.body, { async: false }) as string
+        return `<section class="article-section"><h2>${s.heading}</h2>${bodyHtml}</section>`
+      })
       .join("\n")
 
     const fullText = `${object.summary}\n\n${content}`

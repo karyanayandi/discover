@@ -43,6 +43,7 @@
     "drizzle-zod": "^0.8.3",
     "ioredis": "^5.10.0",
     "jsdom": "^29.0.0",
+    "marked": "^17.0.5",
     "nanoid": "^5.1.7",
     "nanostores": "^1.2.0",
     "pino": "^10.3.1",
