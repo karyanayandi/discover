@@ -1,0 +1,28 @@
+---
+import AssetsManager from "@/components/assets/assets-manager.svelte"
+import AdminLayout from "@/layouts/admin-layout.astro"
+import { db } from "@/lib/db/client"
+import { assetsTable } from "@/lib/db/schemas"
+import { desc } from "drizzle-orm"
+
+const assets = await db.query.assetsTable.findMany({
+  orderBy: [desc(assetsTable.createdAt)],
+  limit: 100,
+})
+
+const settings = await db.query.assetSettingsTable.findFirst()
+const maxUploadSizeMB = settings?.maxUploadSizeMB ?? 50
+---
+
+<AdminLayout title="Assets Library — Admin">
+  <div class="space-y-8">
+    <div>
+      <h2 class="text-2xl font-bold tracking-tight">Assets Library</h2>
+      <p class="text-muted-foreground">
+        Manage your uploaded images, videos, documents, and other files.
+      </p>
+    </div>
+
+    <AssetsManager client:load {assets} {maxUploadSizeMB} />
+  </div>
+</AdminLayout>

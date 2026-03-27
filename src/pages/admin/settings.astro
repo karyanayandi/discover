@@ -1,4 +1,5 @@
 ---
+import AssetSettings from "@/components/admin/asset-settings.svelte"
 import PlatformApiKeyManager from "@/components/admin/platform-api-key-manager.svelte"
 import PipelineRunButton from "@/components/admin/pipeline-run-button.svelte"
 import PipelineScheduler from "@/components/admin/pipeline-scheduler.svelte"
@@ -16,6 +17,14 @@ import AdminLayout from "@/layouts/admin-layout.astro"
 
     <div class="max-w-4xl">
       <PlatformApiKeyManager client:load />
+    </div>
+
+    <div class="max-w-xl rounded-xl border border-border bg-card p-6">
+      <h3 class="mb-2 font-semibold">Assets</h3>
+      <p class="mb-4 text-sm text-muted-foreground">
+        Configure asset upload settings.
+      </p>
+      <AssetSettings client:load />
     </div>
 
     <div class="max-w-xl rounded-xl border border-border bg-card p-6">
