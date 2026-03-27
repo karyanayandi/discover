@@ -37,11 +37,9 @@ export const PATCH: APIRoute = async (context) => {
   try {
     const body = await context.request.json()
 
-    // Check if this is a rename or status update
     if ("name" in body) {
       const { name } = renameSchema.parse(body)
 
-      // Verify the key belongs to the user
       const key = await getApiKeyById(keyId)
       if (!key) {
         return new Response(JSON.stringify({ error: "Key not found" }), {
@@ -77,7 +75,6 @@ export const PATCH: APIRoute = async (context) => {
     if ("isActive" in body) {
       const { isActive } = statusSchema.parse(body)
 
-      // Verify the key belongs to the user
       const key = await getApiKeyById(keyId)
       if (!key) {
         return new Response(JSON.stringify({ error: "Key not found" }), {
@@ -152,7 +149,6 @@ export const DELETE: APIRoute = async (context) => {
   }
 
   try {
-    // Verify the key belongs to the user before deleting
     const key = await getApiKeyById(keyId)
     if (!key) {
       return new Response(JSON.stringify({ error: "Key not found" }), {

@@ -212,10 +212,6 @@ export async function uploadImageToR2(
   return { url: r2Url, assetId: assetResult.value[0].id }
 }
 
-/**
- * Extract image URLs from markdown content using regex.
- * Matches ![alt](url) pattern.
- */
 export function extractMarkdownImageUrls(content: string): string[] {
   const urls: string[] = []
   const regex = /!\[([^\]]*)\]\(([^)]+)\)/g
@@ -231,10 +227,6 @@ export function extractMarkdownImageUrls(content: string): string[] {
   return urls
 }
 
-/**
- * Extract image URLs from HTML img tags.
- * Matches <img src="url"> pattern.
- */
 export function extractHtmlImageUrls(content: string): string[] {
   const urls: string[] = []
   const regex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi
@@ -250,9 +242,6 @@ export function extractHtmlImageUrls(content: string): string[] {
   return urls
 }
 
-/**
- * Extract all unique image URLs from content (markdown + HTML).
- */
 export function extractImageUrls(
   content: string,
   sourceUrl?: string,
@@ -272,22 +261,17 @@ export function extractImageUrls(
   return uniqueUrls.map((url) => resolveImageUrl(url, sourceUrl))
 }
 
-/**
- * Replace image URLs in content with their R2 counterparts.
- */
 export function replaceImageUrls(
   content: string,
   urlMap: Map<string, string>,
 ): string {
   let result = content
 
-  // Replace markdown images
   for (const [originalUrl, r2Url] of urlMap) {
     const escapedUrl = originalUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
     const markdownRegex = new RegExp(`!\\[([^\\]]*)\\]\\(${escapedUrl}\\)`, "g")
     result = result.replace(markdownRegex, `![$1](${r2Url})`)
 
-    // Replace HTML img tags
     const htmlRegex = new RegExp(`src=["']${escapedUrl}["']`, "gi")
     result = result.replace(htmlRegex, `src="${r2Url}"`)
   }
@@ -295,10 +279,6 @@ export function replaceImageUrls(
   return result
 }
 
-/**
- * Process inline images in a section body.
- * Extracts URLs, uploads to R2, and replaces with R2 URLs.
- */
 export async function processSectionImages(
   body: string,
   sourceUrl?: string,

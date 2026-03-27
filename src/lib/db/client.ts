@@ -27,7 +27,6 @@ function getDb(): PostgresJsDatabase<typeof schema> {
         undefined: null,
       },
       types: {
-        // Handle timestamp/timestamptz types (OIDs 1114, 1184)
         timestamp: {
           to: 1114,
           from: [1114, 1184],

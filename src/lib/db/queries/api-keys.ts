@@ -9,7 +9,6 @@ import {
   updateApiKeySchema,
 } from "@/lib/db/schemas/auth"
 
-// Inferred types
 export type UpdateApiKey = Parameters<typeof updateApiKeySchema.parse>[0]
 
 export async function createApiKey(data: InsertApiKey): Promise<SelectApiKey> {

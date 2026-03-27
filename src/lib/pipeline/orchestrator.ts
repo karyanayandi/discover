@@ -50,7 +50,7 @@ async function getModelForCluster(topic: string): Promise<string> {
       return cluster.aiModel
     }
   } catch {
-    // Fallback to default on error
+    return DEFAULT_AI_MODEL
   }
 
   return DEFAULT_AI_MODEL
@@ -142,7 +142,6 @@ function storeArticle(
         "Processing section images...",
       )
 
-      // Process images in each section body
       const sourceUrl = sourceUrls.length > 0 ? sourceUrls[0] : undefined
 
       const processedSections = await Promise.all(
@@ -365,7 +364,6 @@ export function runPipeline(): Promise<Result<PipelineResult, PipelineError>> {
           result.errors.push(
             `Summary failed for "${cluster.topic}": ${summaryResult.error.message}`,
           )
-          // Mark all items in this cluster as failed
           for (const item of cluster.items) {
             await R.tryPromise({
               try: () =>
@@ -487,10 +485,8 @@ export function runPipeline(): Promise<Result<PipelineResult, PipelineError>> {
       )
       return R.ok(result)
     } catch (error) {
-      // If pipeline crashes, mark all processing items as failed
       logger.error(`Pipeline crashed: ${error}`)
 
-      // Find all items currently in processing state and mark them as failed
       const stuckItems = await db.query.feedItemsTable.findMany({
         where: eq(feedItemsTable.status, "processing"),
         columns: { id: true },

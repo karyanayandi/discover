@@ -20,7 +20,6 @@ export const GET: APIRoute = async (context) => {
   try {
     const keys = await getApiKeysByUserId(user.id)
 
-    // Return keys without the hash
     const sanitizedKeys = keys.map((key) => ({
       id: key.id,
       name: key.name,

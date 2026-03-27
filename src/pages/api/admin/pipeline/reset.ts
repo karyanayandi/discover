@@ -13,10 +13,9 @@ export const POST: APIRoute = async ({ locals, request }) => {
 
   try {
     const body = await request.json().catch(() => ({}))
-    const resetType = body.type || "processing" // "processing" or "failed"
+    const resetType = body.type || "processing"
 
     if (resetType === "failed") {
-      // Reset failed items
       const failedItems = await db.query.feedItemsTable.findMany({
         where: eq(feedItemsTable.status, "failed"),
         columns: { id: true, title: true },
@@ -46,7 +45,6 @@ export const POST: APIRoute = async ({ locals, request }) => {
         count: failedItems.length,
       })
     } else {
-      // Reset processing items
       const stuckItems = await db.query.feedItemsTable.findMany({
         where: eq(feedItemsTable.status, "processing"),
         columns: { id: true, title: true },

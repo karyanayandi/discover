@@ -20,7 +20,6 @@ export const POST: APIRoute = async ({ locals, request }) => {
       return Response.json({ error: "feedItemId is required" }, { status: 400 })
     }
 
-    // Get the feed item
     const feedItem = await db.query.feedItemsTable.findFirst({
       where: eq(feedItemsTable.id, feedItemId),
     })
@@ -45,7 +44,6 @@ export const POST: APIRoute = async ({ locals, request }) => {
 
     logger.info(`Starting single item processing for: ${feedItemId}`)
 
-    // Process just this single item
     const result = await runPipelineForItems([feedItemId])
 
     if (result.isErr()) {

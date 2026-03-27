@@ -11,7 +11,6 @@ export const GET: APIRoute = async ({ locals }) => {
   }
 
   try {
-    // Get feed item status counts
     const statusCounts = await db
       .select({
         status: feedItemsTable.status,
@@ -24,12 +23,10 @@ export const GET: APIRoute = async ({ locals }) => {
       statusCounts.map((row) => [row.status, row.count]),
     )
 
-    // Get total articles count
     const [articleResult] = await db
       .select({ count: sql<number>`count(*)`.as("count") })
       .from(articlesTable)
 
-    // Get recent articles (last 5)
     const recentArticles = await db
       .select({
         id: articlesTable.id,
@@ -41,7 +38,6 @@ export const GET: APIRoute = async ({ locals }) => {
       .orderBy(sql`${articlesTable.publishedAt} desc`)
       .limit(5)
 
-    // Get items that are ready for processing (pending and processing)
     const pendingItems = await db
       .select({
         id: feedItemsTable.id,

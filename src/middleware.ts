@@ -29,12 +29,10 @@ const sessionMiddleware = defineMiddleware(async (context, next) => {
 })
 
 const apiKeyMiddleware = defineMiddleware(async (context, next) => {
-  // Skip if user is already authenticated via session
   if (context.locals.user) {
     return next()
   }
 
-  // Check for Bearer token in Authorization header
   const authHeader = context.request.headers.get("authorization")
   if (!authHeader?.startsWith("Bearer ")) {
     return next()
@@ -57,7 +55,6 @@ const apiKeyMiddleware = defineMiddleware(async (context, next) => {
       return next()
     }
 
-    // Get user from auth
     const user = await auth.api.getUser({
       query: { id: apiKeyRecord.userId },
     })
@@ -66,10 +63,8 @@ const apiKeyMiddleware = defineMiddleware(async (context, next) => {
       return next()
     }
 
-    // Update last used timestamp (fire and forget)
     void updateApiKeyLastUsed(apiKeyRecord.id)
 
-    // Set user context (no session created)
     context.locals.user = user
     context.locals.apiKeyAuth = true
 

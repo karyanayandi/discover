@@ -140,7 +140,6 @@ export const apiKeyRelations = relations(apiKeysTable, ({ one }) => ({
   }),
 }))
 
-// Platform API Keys (admin-managed service integrations)
 export const platformApiKeysTable = pgTable(
   "platform_api_keys",
   {

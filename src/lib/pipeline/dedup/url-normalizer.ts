@@ -75,23 +75,18 @@ export function normalizeUrl(url: string): string {
   try {
     const parsed = new URL(url)
 
-    // Remove tracking parameters
     for (const param of TRACKING_PARAMS) {
       parsed.searchParams.delete(param)
     }
 
-    // Remove fragment (hash)
     parsed.hash = ""
 
-    // Normalize path (remove trailing slash except for root)
     if (parsed.pathname.length > 1 && parsed.pathname.endsWith("/")) {
       parsed.pathname = parsed.pathname.slice(0, -1)
     }
 
-    // Normalize case for hostname
     parsed.hostname = parsed.hostname.toLowerCase()
 
-    // Remove empty search params
     const search = parsed.searchParams.toString()
     if (!search) {
       parsed.search = ""
@@ -99,7 +94,6 @@ export function normalizeUrl(url: string): string {
 
     return parsed.toString()
   } catch {
-    // If URL parsing fails, return as-is
     return url
   }
 }

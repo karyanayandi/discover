@@ -14,7 +14,6 @@ function getInitialState(): boolean {
   if (stored !== null) {
     return stored === "true"
   }
-  // Default: open on desktop (lg+), closed on mobile
   return window.innerWidth >= 1024
 }
 
@@ -33,7 +32,6 @@ function updateSidebarState(isOpen: boolean) {
 
 let isOpen = $state(getInitialState())
 
-// Apply initial state
 $effect(() => {
   updateSidebarState(isOpen)
 })
@@ -44,13 +42,11 @@ function toggleSidebar() {
   updateSidebarState(isOpen)
 }
 
-// Handle resize
 function handleResize() {
   const isDesktop = window.innerWidth >= 1024
   const stored = localStorage.getItem(STORAGE_KEY)
 
   if (stored === null) {
-    // No stored preference, use default based on screen size
     isOpen = isDesktop
     updateSidebarState(isOpen)
   }

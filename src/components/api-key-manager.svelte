@@ -78,10 +78,8 @@ async function createApiKey() {
     isCreateDialogOpen = false
     newKeyName = ""
 
-    // Refresh the list
     await fetchApiKeys()
 
-    // Select the new key
     selectedApiKeyStore.set(data.id)
 
     toast.success("API key created successfully")
@@ -104,7 +102,6 @@ async function toggleKeyStatus(key: ApiKey) {
       throw new Error("Failed to update API key")
     }
 
-    // Update local state
     const updatedKeys = apiKeysStore
       .get()
       .map((k) => (k.id === key.id ? { ...k, isActive: !key.isActive } : k))
@@ -128,13 +125,11 @@ async function deleteKey() {
       throw new Error("Failed to delete API key")
     }
 
-    // Remove from local state
     const updatedKeys = apiKeysStore
       .get()
       .filter((k) => k.id !== keyToDelete!.id)
     apiKeysStore.set(updatedKeys)
 
-    // If the deleted key was selected, clear selection
     if (selectedApiKeyStore.get() === keyToDelete.id) {
       selectedApiKeyStore.set(null)
     }
@@ -167,7 +162,6 @@ async function renameKey(key: ApiKey) {
 
     const data = await response.json()
 
-    // Update local state
     const updatedKeys = apiKeysStore
       .get()
       .map((k) => (k.id === key.id ? { ...k, name: data.name } : k))
@@ -356,7 +350,6 @@ function selectKey(key: ApiKey) {
   {/if}
 </div>
 
-<!-- New Key Dialog -->
 <Dialog bind:open={showNewKeyDialog}>
   <DialogContent>
     <DialogHeader>
@@ -399,7 +392,6 @@ function selectKey(key: ApiKey) {
   </DialogContent>
 </Dialog>
 
-<!-- Delete Confirmation Dialog -->
 <Dialog bind:open={isDeleteDialogOpen}>
   <DialogContent>
     <DialogHeader>

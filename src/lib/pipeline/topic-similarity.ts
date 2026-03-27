@@ -7,7 +7,7 @@ import type { SelectCluster } from "@/lib/db/schemas"
 import { logger } from "@/lib/logger"
 
 const SIMILARITY_THRESHOLD = 0.75
-const EMBEDDING_CACHE_TTL = 24 * 60 * 60 // 24 hours in seconds
+const EMBEDDING_CACHE_TTL = 24 * 60 * 60
 const EMBEDDING_MODEL = "text-embedding-3-small"
 
 interface ClusterEmbedding {
@@ -148,7 +148,6 @@ export async function batchComputeSimilarities(
   try {
     const relationships: SimilarityRelationship[] = []
 
-    // Generate embeddings in parallel for all clusters
     const embeddingResults = await Promise.all(
       clusters.map(async (cluster) => {
         const result = await generateEmbedding(cluster)
@@ -167,7 +166,6 @@ export async function batchComputeSimilarities(
       }
     }
 
-    // Compute pairwise similarities
     for (let i = 0; i < clusters.length; i++) {
       for (let j = i + 1; j < clusters.length; j++) {
         const clusterA = clusters[i]
@@ -212,7 +210,6 @@ export async function storeSimilarityRelationship(
       EMBEDDING_CACHE_TTL,
     )
 
-    // Also store in a list of high-similarity pairs for quick lookup
     const listKey = `cluster:high-similarity:${relationship.clusterAId}`
     const redis = await cache.getRedisClient()
     if (redis) {
@@ -284,7 +281,6 @@ export async function createMergeSuggestion(
     const cacheKey = getMergeSuggestionKey(clusterA.id, clusterB.id)
     await cache.setCache(cacheKey, suggestion, EMBEDDING_CACHE_TTL)
 
-    // Add to pending suggestions list
     const pendingKey = "cluster:merge-suggestions:pending"
     const redis = await cache.getRedisClient()
     if (redis) {
@@ -325,7 +321,6 @@ export async function getPendingMergeSuggestions(): Promise<
       }
     }
 
-    // Sort by similarity score descending
     suggestions.sort((a, b) => b.similarityScore - a.similarityScore)
 
     return Result.ok(suggestions)
@@ -351,7 +346,6 @@ export async function approveMergeSuggestion(
     suggestion.status = "approved"
     await cache.setCache(cacheKey, suggestion, EMBEDDING_CACHE_TTL)
 
-    // Remove from pending list
     const pendingKey = "cluster:merge-suggestions:pending"
     const redis = await cache.getRedisClient()
     if (redis) {
@@ -381,14 +375,12 @@ export async function rejectMergeSuggestion(
     suggestion.status = "rejected"
     await cache.setCache(cacheKey, suggestion, EMBEDDING_CACHE_TTL)
 
-    // Remove from pending list
     const pendingKey = "cluster:merge-suggestions:pending"
     const redis = await cache.getRedisClient()
     if (redis) {
       await redis.srem(pendingKey, suggestionId)
     }
 
-    // Set cooldown for 7 days
     const cooldownKey = getCooldownKey(clusterAId, clusterBId)
     await cache.setCache(
       cooldownKey,
@@ -396,7 +388,6 @@ export async function rejectMergeSuggestion(
       7 * 24 * 60 * 60,
     )
 
-    // Remove similarity relationship
     const similarityKey = getSimilarityCacheKey(clusterAId, clusterBId)
     await cache.deleteCache(similarityKey)
 
