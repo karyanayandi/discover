@@ -171,6 +171,48 @@ const pipelineStats = [
         Run Full Pipeline
       </button>
 
+      <button
+        id="reset-pipeline-btn"
+        class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-3 text-sm font-medium transition-colors hover:bg-accent"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12"></path>
+          <path d="M3 3v9h9"></path>
+        </svg>
+        Reset Stuck Items
+      </button>
+
+      <button
+        id="reset-failed-btn"
+        class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-3 text-sm font-medium transition-colors hover:bg-accent"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12"></path>
+          <path d="M3 3v9h9"></path>
+        </svg>
+        Reset Failed Items
+      </button>
+
       <a
         href="/admin/feeds"
         class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-3 text-sm font-medium transition-colors hover:bg-accent"
@@ -458,6 +500,97 @@ const pipelineStats = [
             </svg>
             Run Full Pipeline
           `
+        }
+      })
+
+    // Reset pipeline button
+    document
+      .getElementById("reset-pipeline-btn")
+      ?.addEventListener("click", async () => {
+        const btn = document.getElementById(
+          "reset-pipeline-btn",
+        ) as HTMLButtonElement | null
+        if (!btn) return
+
+        if (!confirm("Reset all stuck 'processing' items back to 'pending'?")) {
+          return
+        }
+
+        btn.disabled = true
+        const originalText = btn.innerHTML
+        btn.innerHTML = `
+          <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+          </svg>
+          Resetting...
+        `
+
+        try {
+          const response = await fetch("/api/admin/pipeline/reset", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          })
+
+          const result = await response.json()
+
+          if (result.success) {
+            alert(result.message)
+            window.location.reload()
+          } else {
+            alert(`Reset failed: ${result.error}`)
+            btn.disabled = false
+            btn.innerHTML = originalText
+          }
+        } catch (error) {
+          alert(`Error: ${error}`)
+          btn.disabled = false
+          btn.innerHTML = originalText
+        }
+      })
+
+    // Reset failed items button
+    document
+      .getElementById("reset-failed-btn")
+      ?.addEventListener("click", async () => {
+        const btn = document.getElementById(
+          "reset-failed-btn",
+        ) as HTMLButtonElement | null
+        if (!btn) return
+
+        if (!confirm("Reset all 'failed' items back to 'pending'?")) {
+          return
+        }
+
+        btn.disabled = true
+        const originalText = btn.innerHTML
+        btn.innerHTML = `
+          <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+          </svg>
+          Resetting...
+        `
+
+        try {
+          const response = await fetch("/api/admin/pipeline/reset", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "failed" }),
+          })
+
+          const result = await response.json()
+
+          if (result.success) {
+            alert(result.message)
+            window.location.reload()
+          } else {
+            alert(`Reset failed: ${result.error}`)
+            btn.disabled = false
+            btn.innerHTML = originalText
+          }
+        } catch (error) {
+          alert(`Error: ${error}`)
+          btn.disabled = false
+          btn.innerHTML = originalText
         }
       })
 

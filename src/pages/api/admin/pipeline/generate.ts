@@ -5,6 +5,7 @@ import { isAdmin } from "@/lib/auth/is-admin"
 import { db } from "@/lib/db/client"
 import { feedItemsTable } from "@/lib/db/schemas"
 import { logger } from "@/lib/logger"
+import { runPipelineForItems } from "@/lib/pipeline/single-item-processor"
 
 export const POST: APIRoute = async ({ locals, request }) => {
   if (!isAdmin(locals.user)) {
@@ -42,48 +43,43 @@ export const POST: APIRoute = async ({ locals, request }) => {
       )
     }
 
-    // Update status to processing
-    await db
-      .update(feedItemsTable)
-      .set({ status: "processing" })
-      .where(eq(feedItemsTable.id, feedItemId))
+    logger.info(`Starting single item processing for: ${feedItemId}`)
 
-    logger.info(
-      `Manual article generation started for feed item: ${feedItemId}`,
-    )
+    // Process just this single item
+    const result = await runPipelineForItems([feedItemId])
 
-    // Run pipeline in background - don't await it
-    void (async () => {
-      try {
-        const { runPipeline } = await import("@/lib/pipeline/orchestrator")
-        const result = await runPipeline()
+    if (result.isErr()) {
+      logger.error(`Failed to process ${feedItemId}: ${result.error.message}`)
+      return Response.json(
+        { error: `Failed: ${result.error.message}` },
+        { status: 500 },
+      )
+    }
 
-        if (result.isErr()) {
-          logger.error(
-            `Pipeline failed for ${feedItemId}: ${result.error.message}`,
-          )
-          // Status is already processing, will be updated by pipeline
-        } else {
-          logger.info(
-            `Pipeline completed for ${feedItemId}. Articles created: ${result.value.articlesCreated}`,
-          )
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        logger.error(`Pipeline error for ${feedItemId}: ${message}`)
-      }
-    })()
+    const { articleId, status } = result.value
 
-    // Return immediately
-    return Response.json({
-      success: true,
-      message: "Pipeline started in background. Refresh to see results.",
-    })
+    if (status === "processed" && articleId) {
+      return Response.json({
+        success: true,
+        message: "Article generated successfully!",
+        articleId,
+      })
+    } else if (status === "skipped") {
+      return Response.json({
+        success: true,
+        message: "Item was skipped (duplicate content)",
+      })
+    } else {
+      return Response.json({
+        success: false,
+        message: `Processing failed with status: ${status}`,
+      })
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.error("Generate article error:", error)
     return Response.json(
-      { error: `Failed to start pipeline: ${message}` },
+      { error: `Failed to process: ${message}` },
       { status: 500 },
     )
   }

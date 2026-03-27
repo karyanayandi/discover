@@ -1,6 +1,6 @@
 import type { Result } from "better-result"
 import { Result as R } from "better-result"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 
 import { db } from "@/lib/db/client"
 import {
@@ -123,7 +123,7 @@ function storeArticle(
               sourceCount: citations.length,
               readingTimeMinutes: summary.readingTimeMinutes,
               contentFingerprint: contentFingerprint ?? null,
-              publishedAt: new Date(),
+              publishedAt: sql`NOW()`,
               thumbnailUrl: thumbnail?.url ?? null,
               thumbnailAssetId: thumbnail?.assetId ?? null,
             })
@@ -468,7 +468,10 @@ export function runPipeline(): Promise<Result<PipelineResult, PipelineError>> {
             try: () =>
               db
                 .update(feedItemsTable)
-                .set({ status: "processed", processedAt: new Date() })
+                .set({
+                  status: "processed",
+                  processedAt: sql`NOW()`,
+                })
                 .where(eq(feedItemsTable.id, item.id)),
             catch: (e) =>
               new PipelineError({
