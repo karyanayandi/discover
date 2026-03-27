@@ -70,10 +70,12 @@ export const POST: APIRoute = async ({ locals, request }) => {
         message: "Item was skipped (duplicate content)",
       })
     } else {
-      return Response.json({
-        success: false,
-        message: `Processing failed with status: ${status}`,
-      })
+      return Response.json(
+        {
+          error: `Processing failed with status: ${status}`,
+        },
+        { status: 500 },
+      )
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
