@@ -17,6 +17,7 @@ export const citationsTable = pgTable(
     url: text("url").notNull(),
     title: text("title").notNull(),
     domain: text("domain").notNull(),
+    iconUrl: text("icon_url"),
     description: text("description"),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at").defaultNow().notNull(),

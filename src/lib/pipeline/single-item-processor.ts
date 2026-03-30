@@ -140,6 +140,7 @@ export async function runPipelineForItems(
           url: citation.url,
           title: citation.title,
           domain: citation.domain,
+          iconUrl: citation.iconUrl,
           description: citation.description,
           sortOrder: i,
         })),

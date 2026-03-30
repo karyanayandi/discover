@@ -5,6 +5,7 @@ export interface ExtractedCitation {
   url: string
   title: string
   domain: string
+  iconUrl: string | null
   description: string | null
 }
 
@@ -18,6 +19,7 @@ export function extractCitationsFromCluster(
     title: string
     link: string
     description?: string | null
+    feedSource?: { iconUrl: string | null } | null
   }[],
 ): Result<ExtractedCitation[], never> {
   const citations: ExtractedCitation[] = items
@@ -26,6 +28,7 @@ export function extractCitationsFromCluster(
       url: item.link,
       title: item.title || `Source ${i + 1}`,
       domain: extractDomain(item.link),
+      iconUrl: item.feedSource?.iconUrl ?? null,
       description: item.description ?? null,
     }))
 

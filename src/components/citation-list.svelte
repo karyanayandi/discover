@@ -3,6 +3,7 @@ export interface Citation {
   url: string
   title: string
   domain: string
+  iconUrl: string | null
   description: string | null
 }
 </script>
@@ -31,6 +32,14 @@ export interface Citation {
           >
             {i + 1}
           </span>
+          {#if citation.iconUrl}
+            <img
+              src={citation.iconUrl}
+              alt=""
+              class="mt-0.5 h-4 w-4 shrink-0 rounded-sm"
+              loading="lazy"
+            />
+          {/if}
           <div class="min-w-0 flex-1">
             <a
               href={citation.url}

@@ -187,6 +187,7 @@ function storeArticle(
                 url: citation.url,
                 title: citation.title,
                 domain: citation.domain,
+                iconUrl: citation.iconUrl,
                 description: citation.description,
                 sortOrder: i,
               })),
@@ -257,6 +258,9 @@ export function runPipeline(): Promise<Result<PipelineResult, PipelineError>> {
           try: () =>
             db.query.feedItemsTable.findMany({
               where: eq(feedItemsTable.status, "pending"),
+              with: {
+                feedSource: true,
+              },
             }),
           catch: (e) =>
             new PipelineError({
