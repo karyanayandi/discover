@@ -1,16 +1,19 @@
 ---
-import { asc, count, desc, eq } from "drizzle-orm"
+import { count, desc, eq } from "drizzle-orm"
 import ArticleFeed from "@/components/article-feed.svelte"
 import CategorySidebar from "@/components/category-sidebar.svelte"
 import StoreInit from "@/components/store-init.svelte"
 import Layout from "@/layouts/layout.astro"
 import { db } from "@/lib/db/client"
 import { getSavedSlugsForUser } from "@/lib/db/queries"
-import { articlesTable, categoriesTable } from "@/lib/db/schemas"
+import {
+  articleCategoriesTable,
+  articlesTable,
+  categoriesTable,
+} from "@/lib/db/schemas"
 
 const categorySlug = Astro.url.searchParams.get("category") ?? ""
 
-// Redirect old category URLs to new format
 if (categorySlug) {
   return Astro.redirect(`/category/${categorySlug}`)
 }
@@ -20,9 +23,22 @@ const limit = 20
 const user = Astro.locals.user
 const savedSlugs = user ? await getSavedSlugsForUser(user.id) : []
 
-const categories = await db.query.categoriesTable.findMany({
-  orderBy: [asc(categoriesTable.name)],
-})
+const topCategories = await db
+  .select({
+    id: categoriesTable.id,
+    slug: categoriesTable.slug,
+    name: categoriesTable.name,
+    color: categoriesTable.color,
+    articleCount: count(articleCategoriesTable.articleId),
+  })
+  .from(categoriesTable)
+  .leftJoin(
+    articleCategoriesTable,
+    eq(categoriesTable.id, articleCategoriesTable.categoryId),
+  )
+  .groupBy(categoriesTable.id)
+  .orderBy(desc(count(articleCategoriesTable.articleId)))
+  .limit(10)
 
 const where = eq(articlesTable.status, "published")
 
@@ -56,14 +72,11 @@ const canonicalUrl = Astro.url.origin
     client:load
   />
   <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-    <h1 class="mb-8 text-2xl font-bold text-foreground">
-      AI-curated insights from across the web
-    </h1>
-
     <div class="flex gap-8">
       <aside class="hidden w-56 shrink-0 lg:block">
         <CategorySidebar
-          {categories}
+          categories={topCategories}
+          showExploreLink={true}
           client:load
         />
       </aside>

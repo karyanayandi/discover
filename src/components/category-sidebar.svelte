@@ -10,7 +10,7 @@ export interface CategoryItem {
   import Button from "@/components/ui/button/button.svelte"
   import { selectedCategoryStore } from "@/stores/selected-category"
 
-  let { categories }: { categories: CategoryItem[] } = $props()
+  let { categories, showExploreLink = false }: { categories: CategoryItem[]; showExploreLink?: boolean } = $props()
 
   let activeSlug = $state(selectedCategoryStore.get())
 
@@ -47,4 +47,13 @@ export interface CategoryItem {
       </Button>
     </a>
   {/each}
+
+  {#if showExploreLink}
+    <a
+      href="/categories"
+      class="mt-2 inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
+    >
+      View all categories →
+    </a>
+  {/if}
 </nav>
