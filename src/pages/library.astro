@@ -42,7 +42,7 @@ const orderedArticles = articleIds
 const savedSlugs = orderedArticles.map((a: (typeof articles)[number]) => a.slug)
 ---
 
-<Layout title="My Library - Discover">
+<Layout title="My Library - Discover" noindex>
   <StoreInit
     user={{ id: user.id, name: user.name, email: user.email, image: user.image ?? null, role: user.role ?? null }}
     {savedSlugs}

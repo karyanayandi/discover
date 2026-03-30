@@ -87,7 +87,7 @@ const pageDescription =
 const canonicalUrl = `${Astro.url.origin}/category/${slug}`
 ---
 
-<Layout title={pageTitle} description={pageDescription}>
+<Layout title={pageTitle} description={pageDescription} canonicalUrl={canonicalUrl}>
   <StoreInit
     user={user ? { id: user.id, name: user.name, email: user.email, image: user.image ?? null, role: user.role ?? null } : null}
     {savedSlugs}
@@ -99,7 +99,7 @@ const canonicalUrl = `${Astro.url.origin}/category/${slug}`
         {category.iconUrl && (
           <img
             src={category.iconUrl}
-            alt=""
+            alt={`${category.name} category icon`}
             class="h-8 w-8 rounded-lg object-cover"
           />
         )}
@@ -168,9 +168,4 @@ const canonicalUrl = `${Astro.url.origin}/category/${slug}`
       )}
     </main>
   </div>
-
-  <link rel="canonical" href={canonicalUrl} />
-  <meta property="og:title" content={pageTitle} />
-  <meta property="og:description" content={pageDescription} />
-  <meta property="og:url" content={canonicalUrl} />
 </Layout>

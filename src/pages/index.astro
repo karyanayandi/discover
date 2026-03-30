@@ -46,18 +46,19 @@ const [articles, [totalRow]] = await Promise.all([
 ])
 
 const total = totalRow?.count ?? 0
+const canonicalUrl = Astro.url.origin
 ---
 
-<Layout title="Discover - AI-Curated Insights">
+<Layout title="Discover - AI-Curated Insights" canonicalUrl={canonicalUrl}>
   <StoreInit
     user={user ? { id: user.id, name: user.name, email: user.email, image: user.image ?? null, role: user.role ?? null } : null}
     {savedSlugs}
     client:load
   />
   <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-    <p class="mb-8 text-muted-foreground">
+    <h1 class="mb-8 text-2xl font-bold text-foreground">
       AI-curated insights from across the web
-    </p>
+    </h1>
 
     <div class="flex gap-8">
       <aside class="hidden w-56 shrink-0 lg:block">

@@ -7,10 +7,20 @@ import "@/styles/global.css"
 interface Props {
   title?: string
   description?: string
+  canonicalUrl?: string
+  ogImage?: string
+  ogType?: string
+  noindex?: boolean
 }
 
-const { title = "Discover", description = "AI-curated news and insights" } =
-  Astro.props
+const {
+  title = "Discover",
+  description = "AI-curated news and insights",
+  canonicalUrl,
+  ogImage,
+  ogType = "website",
+  noindex = false,
+} = Astro.props
 
 const themeScript = getThemeScript()
 ---
@@ -25,6 +35,17 @@ const themeScript = getThemeScript()
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content={ogType} />
+    {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {ogImage && <meta name="twitter:image" content={ogImage} />}
     <script set:html={themeScript} is:inline />
   </head>
   <body class="min-h-screen bg-background text-foreground antialiased">

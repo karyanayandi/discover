@@ -103,9 +103,20 @@ const relatedArticles = await db.query.articlesTable.findMany({
 })
 
 const articleUrl = `${Astro.url.origin}/article/${slug}`
+const ogImageUrl = normalizedThumbnailUrl
+  ? normalizedThumbnailUrl.startsWith("http")
+    ? normalizedThumbnailUrl
+    : `${Astro.url.origin}${normalizedThumbnailUrl}`
+  : undefined
 ---
 
-<Layout title={`${article.title} - Discover`} description={article.summary}>
+<Layout
+  title={`${article.title} - Discover`}
+  description={article.summary}
+  canonicalUrl={articleUrl}
+  ogImage={ogImageUrl}
+  ogType="article"
+>
   <StoreInit
     user={user ? { id: user.id, name: user.name, email: user.email, image: user.image ?? null, role: user.role ?? null } : null}
     {savedSlugs}
@@ -185,7 +196,7 @@ const articleUrl = `${Astro.url.origin}/article/${slug}`
       {normalizedThumbnailUrl && (
         <img
           src={normalizedThumbnailUrl}
-          alt=""
+          alt={`Cover image for ${article.title}`}
           class="mb-8 aspect-video w-full rounded-xl object-cover"
           loading="eager"
         />
