@@ -235,8 +235,16 @@ const pipelineStats = [
           <div>
             <h3 class="text-lg font-semibold">Pending Items</h3>
             <p class="text-sm text-muted-foreground">
-    {
-      processingItems.length > 0 && (
+              {pendingItems.length} items waiting to be processed
+            </p>
+          </div>
+          <span class="rounded-full bg-yellow-100 px-3 py-1 text-sm font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+            {pendingItems.length}
+          </span>
+        </div>
+      </div>
+      {
+        processingItems.length > 0 && (
         <div class="rounded-xl border border-border bg-card">
           <div class="border-b border-border p-6">
             <div class="flex items-center justify-between">
