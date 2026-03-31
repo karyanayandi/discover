@@ -8,9 +8,13 @@ import { defineConfig } from "astro/config"
 
 // https://astro.build/config
 export default defineConfig({
+  site: "https://discover.teknodaim.com",
+  server: {
+    port: 4321,
+    host: true,
+  },
   output: "server",
   adapter: node({ mode: "standalone" }),
-  site: "https://discover.example.com",
 
   integrations: [
     svelte(),
@@ -25,5 +29,20 @@ export default defineConfig({
 
   vite: {
     plugins: [tailwindcss()],
+    preview: {
+      port: 4321,
+      host: true,
+    },
+    ssr: {
+      external: ["ioredis"],
+    },
+  },
+
+  experimental: {
+    clientPrerender: true,
+    rustCompiler: true,
+    queuedRendering: {
+      enabled: true,
+    },
   },
 })
